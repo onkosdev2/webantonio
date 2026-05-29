@@ -1,0 +1,38 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="52" fill="#112E2B"/>
+  <rect x="36" y="36" width="1128" height="828" rx="36" stroke="url(#paint0_linear)" stroke-opacity="0.35"/>
+  <circle cx="872" cy="278" r="214" fill="url(#paint1_radial)" fill-opacity="0.8"/>
+  <circle cx="965" cy="205" r="7" fill="#E8C487"/>
+  <circle cx="771" cy="383" r="12" fill="#E8C487" fill-opacity="0.65"/>
+  <circle cx="642" cy="585" r="10" fill="#E8C487" fill-opacity="0.5"/>
+  <path d="M323 646C480 474 622 399 746 363C827 339 899 336 978 343" stroke="url(#paint2_linear)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 14"/>
+  <path d="M270 728C408 531 548 425 689 389C831 353 949 389 1012 446" stroke="#F2E2C2" stroke-opacity="0.18" stroke-width="1.6"/>
+  <path d="M246 553C363 496 478 442 587 380C704 312 824 249 957 193" stroke="#CBA76F" stroke-opacity="0.3" stroke-width="1.6"/>
+  <circle cx="314" cy="651" r="82" fill="#173A36" stroke="#D0A869" stroke-opacity="0.32"/>
+  <circle cx="314" cy="651" r="40" fill="#E1B97B" fill-opacity="0.13"/>
+  <circle cx="314" cy="651" r="14" fill="#E8C487"/>
+  <circle cx="314" cy="651" r="4" fill="#FFF4DD"/>
+  <path d="M314 549V753" stroke="#D7B073" stroke-opacity="0.24" stroke-width="1.2"/>
+  <path d="M212 651H416" stroke="#D7B073" stroke-opacity="0.24" stroke-width="1.2"/>
+  <g opacity="0.75">
+    <rect x="736" y="548" width="242" height="149" rx="24" fill="#F3E7D4" fill-opacity="0.08" stroke="#D0A869" stroke-opacity="0.24"/>
+    <path d="M774 650C813 604 850 580 885 580C915 580 943 598 970 629" stroke="#E7C486" stroke-width="2"/>
+    <circle cx="773" cy="651" r="6" fill="#E7C486"/>
+    <circle cx="971" cy="629" r="6" fill="#E7C486"/>
+    <circle cx="878" cy="580" r="6" fill="#E7C486"/>
+  </g>
+  <defs>
+    <linearGradient id="paint0_linear" x1="129" y1="122" x2="1124" y2="834" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D5AF76"/>
+      <stop offset="1" stop-color="#D5AF76" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="paint1_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(872 278) rotate(90) scale(214)">
+      <stop stop-color="#2E6A61"/>
+      <stop offset="1" stop-color="#2E6A61" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="paint2_linear" x1="323" y1="646" x2="978" y2="343" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFCB91"/>
+      <stop offset="1" stop-color="#EFCB91" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>

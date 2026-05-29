@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ContentType {
+  CLINICAL_CASE
+  EDITORIAL
+  NEWS_ITEM
+  STORY
+  REFLECTION
+  GALLERY_ASSET
+}
+
+enum ContentStatus {
+  DRAFT
+  PENDING_REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ImportState {
+  RECEIVED
+  VALIDATED
+  QUEUED
+  REVIEW_REQUIRED
+  FAILED
+}
+
+enum AiTaskKind {
+  NEWS_DRAFT
+  EDITORIAL_DRAFT
+  CASE_ENRICHMENT
+  COMMENT_REPLY
+}
+
+enum AiTaskState {
+  PENDING
+  RUNNING
+  READY
+  APPLIED
+}
+
+model Content {
+  id          String        @id @default(cuid())
+  type        ContentType
+  status      ContentStatus @default(DRAFT)
+  title       String
+  slug        String        @unique
+  summary     String
+  body        String
+  source      String?
+  author      String?
+  tags        Json          @default("[]")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  publishedAt DateTime?
+
+  oncologyData OncologyMetadata?
+  media        MediaAsset[]
+  importLogs   ImportLog[]
+  aiTasks      AiTask[]
+}
+
+model OncologyMetadata {
+  id              String  @id @default(cuid())
+  contentId       String  @unique
+  tumorType       String?
+  stage           String?
+  biomarkers      Json     @default("[]")
+  treatmentLine   String?
+  treatmentPlan   String?
+  response        String?
+  toxicities      Json     @default("[]")
+  evidenceLevel   String?
+  reviewNotes     String?
+  anonymized      Boolean @default(false)
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model MediaAsset {
+  id          String   @id @default(cuid())
+  contentId   String?
+  title       String
+  altText     String?
+  storagePath String
+  mediaType   String
+  isSensitive Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  content Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+}
+
+model ImportLog {
+  id             String      @id @default(cuid())
+  source         String
+  payloadType    String
+  payloadSummary String
+  state          ImportState @default(RECEIVED)
+  notes          String?
+  createdAt      DateTime    @default(now())
+  contentId      String?
+
+  content Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+}
+
+model AiTask {
+  id          String      @id @default(cuid())
+  kind        AiTaskKind
+  state       AiTaskState @default(PENDING)
+  title       String
+  prompt      String
+  resultTitle String?
+  resultNote  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  contentId   String?
+
+  content Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+}
