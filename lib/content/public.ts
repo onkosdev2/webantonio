@@ -1,12 +1,14 @@
 import { getPublishedClinicalCases } from "@/lib/content/cases";
 import { getPublishedEditorials } from "@/lib/content/editorials";
 import { getPublishedNewsItems } from "@/lib/content/news";
+import { getPublishedResearchItems } from "@/lib/content/research";
 import { getPublishedTextContentItems } from "@/lib/content/text-content";
 
 export type PublicArchiveType =
   | "clinical_case"
   | "news_item"
   | "editorial"
+  | "research"
   | "reflection"
   | "story";
 
@@ -118,6 +120,8 @@ export function getTypeLabel(type: PublicArchiveType) {
       return "Noticia oncologica";
     case "editorial":
       return "Editorial";
+    case "research":
+      return "Investigacion";
     case "reflection":
       return "Reflexion";
     case "story":
@@ -168,10 +172,11 @@ export function getRelatedPublicItems(
 }
 
 export async function getPublicArchiveItems() {
-  const [cases, news, editorials, reflections, stories] = await Promise.all([
+  const [cases, news, editorials, research, reflections, stories] = await Promise.all([
     getPublishedClinicalCases(),
     getPublishedNewsItems(),
     getPublishedEditorials(),
+    getPublishedResearchItems(),
     getPublishedTextContentItems("REFLECTION"),
     getPublishedTextContentItems("STORY")
   ]);
@@ -227,6 +232,18 @@ export async function getPublicArchiveItems() {
     meta: [item.source || "", ...item.tags.slice(0, 3)].filter(Boolean)
   }));
 
+  const researchItems: PublicArchiveItem[] = research.map((item) => ({
+    href: `/investigacion/${item.slug}`,
+    title: item.title,
+    summary: item.summary,
+    kicker: "Investigacion",
+    type: "research",
+    publishedAt: item.publishedAt,
+    tags: item.tags,
+    source: item.source,
+    meta: [item.source || "", ...item.tags.slice(0, 3)].filter(Boolean)
+  }));
+
   const reflectionItems: PublicArchiveItem[] = reflections.map((item) => ({
     href: `/reflexiones/${item.slug}`,
     title: item.title,
@@ -255,6 +272,7 @@ export async function getPublicArchiveItems() {
     ...caseItems,
     ...newsItems,
     ...editorialItems,
+    ...researchItems,
     ...reflectionItems,
     ...storyItems
   ].sort((left, right) => {
@@ -270,7 +288,8 @@ export async function getPublicHomeFeed() {
   const counts = {
     cases: items.filter((item) => item.type === "clinical_case").length,
     news: items.filter((item) => item.type === "news_item").length,
-    editorials: items.filter((item) => item.type === "editorial").length
+    editorials: items.filter((item) => item.type === "editorial").length,
+    research: items.filter((item) => item.type === "research").length
   };
 
   const latestPublished: PublicHomeItem[] = items.slice(0, 6).map((item) => ({

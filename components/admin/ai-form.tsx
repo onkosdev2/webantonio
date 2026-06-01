@@ -1,5 +1,5 @@
 type AiFormValues = {
-  pieceType: "news_item" | "editorial" | "reflection" | "story" | "clinical_case";
+  pieceType: "news_item" | "editorial" | "research" | "reflection" | "story" | "clinical_case";
   focus: string;
   topic: string;
   angle: string;
@@ -46,6 +46,7 @@ export function AiForm({ action, initialValues = emptyValues }: AiFormProps) {
             <select name="pieceType" defaultValue={initialValues.pieceType}>
               <option value="news_item">Noticia comentada</option>
               <option value="editorial">Editorial</option>
+              <option value="research">Investigación</option>
               <option value="reflection">Reflexión</option>
               <option value="story">Historia</option>
               <option value="clinical_case">Caso clínico</option>

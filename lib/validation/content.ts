@@ -4,6 +4,7 @@ export const contentImportSchema = z.object({
   type: z.enum([
     "clinical_case",
     "editorial",
+    "research",
     "news_item",
     "reflection",
     "story",

@@ -18,6 +18,8 @@ function mapPayloadTypeToDraftType(payloadType: string) {
       return "clinical_case";
     case "news_item":
       return "news_item";
+    case "research":
+      return "research";
     case "reflection":
       return "reflection";
     case "editorial":

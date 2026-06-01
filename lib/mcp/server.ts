@@ -12,7 +12,7 @@ const searchArgsSchema = z.object({
 });
 
 export const createDraftArgsSchema = z.object({
-  type: z.enum(["clinical_case", "editorial", "news_item", "reflection", "story"]),
+  type: z.enum(["clinical_case", "editorial", "research", "news_item", "reflection", "story"]),
   title: z.string().min(5),
   summary: z.string().min(20),
   body: z.string().min(50),
@@ -34,6 +34,8 @@ function mapDraftType(type: z.infer<typeof createDraftArgsSchema>["type"]) {
       return ContentType.CLINICAL_CASE;
     case "editorial":
       return ContentType.EDITORIAL;
+    case "research":
+      return ContentType.RESEARCH;
     case "news_item":
       return ContentType.NEWS_ITEM;
     case "reflection":
@@ -178,10 +180,11 @@ export async function queueDraftForReview(slug: string) {
 }
 
 export async function listMcpResources() {
-  const [caseCount, newsCount, editorialCount] = await Promise.all([
+  const [caseCount, newsCount, editorialCount, researchCount] = await Promise.all([
     db.content.count({ where: { type: ContentType.CLINICAL_CASE } }),
     db.content.count({ where: { type: ContentType.NEWS_ITEM } }),
-    db.content.count({ where: { type: ContentType.EDITORIAL } })
+    db.content.count({ where: { type: ContentType.EDITORIAL } }),
+    db.content.count({ where: { type: ContentType.RESEARCH } })
   ]);
 
   return [
@@ -202,6 +205,12 @@ export async function listMcpResources() {
       name: "Editoriales",
       description: "Archivo de criterio clinico y pensamiento medico.",
       count: editorialCount
+    },
+    {
+      uri: "oncology://content/research",
+      name: "Investigacion",
+      description: "Archivo de evidencia, biomarcadores y lectura critica oncologica.",
+      count: researchCount
     }
   ];
 }
@@ -254,6 +263,20 @@ export async function readMcpResource(uri: string) {
     };
   }
 
+  if (uri === "oncology://content/research") {
+    return {
+      uri,
+      items: await db.content
+        .findMany({
+          where: { type: ContentType.RESEARCH },
+          include: { oncologyData: true },
+          orderBy: { updatedAt: "desc" },
+          take: 20
+        })
+        .then((items) => items.map(normalizeResult))
+    };
+  }
+
   throw new Error(`Unknown MCP resource: ${uri}`);
 }
 
@@ -268,8 +291,12 @@ export function listMcpTools() {
       description: "Busca noticias oncológicas publicadas o en revision."
     },
     {
+      name: "search_research",
+      description: "Busca piezas de investigacion dentro del archivo oncologico."
+    },
+    {
       name: "create_draft",
-      description: "Crea un borrador editorial, de caso, noticia o reflexión."
+      description: "Crea un borrador editorial, de investigacion, de caso, noticia o reflexión."
     },
     {
       name: "queue_for_review",
@@ -292,6 +319,15 @@ export async function callMcpTool(toolName: string, input: unknown) {
     return {
       tool: toolName,
       items: await searchContentByType(ContentType.NEWS_ITEM, input as z.infer<
+        typeof searchArgsSchema
+      >)
+    };
+  }
+
+  if (toolName === "search_research") {
+    return {
+      tool: toolName,
+      items: await searchContentByType(ContentType.RESEARCH, input as z.infer<
         typeof searchArgsSchema
       >)
     };

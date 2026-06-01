@@ -14,6 +14,8 @@ function formatType(type: ContentType) {
       return "Caso clinico";
     case ContentType.EDITORIAL:
       return "Editorial";
+    case ContentType.RESEARCH:
+      return "Investigacion";
     case ContentType.NEWS_ITEM:
       return "Noticia";
     case ContentType.REFLECTION:
@@ -31,6 +33,8 @@ function buildPanelHref(type: ContentType, slug: string) {
       return `/panel/casos/${slug}`;
     case ContentType.EDITORIAL:
       return `/panel/editoriales/${slug}`;
+    case ContentType.RESEARCH:
+      return `/panel/investigacion/${slug}`;
     case ContentType.NEWS_ITEM:
       return `/panel/noticias/${slug}`;
     case ContentType.REFLECTION:
@@ -201,10 +205,11 @@ export async function getDashboardData() {
     },
     {
       kicker: "Actualidad",
-      title: "Noticias y editoriales",
+      title: "Noticias, editoriales e investigacion",
       description:
-        `${countByType.get(ContentType.NEWS_ITEM) ?? 0} noticias y ` +
-        `${countByType.get(ContentType.EDITORIAL) ?? 0} editoriales bajo control editorial.`
+        `${countByType.get(ContentType.NEWS_ITEM) ?? 0} noticias, ` +
+        `${countByType.get(ContentType.EDITORIAL) ?? 0} editoriales y ` +
+        `${countByType.get(ContentType.RESEARCH) ?? 0} piezas de investigacion bajo control editorial.`
     },
     {
       kicker: "Integraciones",

@@ -18,6 +18,11 @@ type EditorialFormProps = {
   initialValues?: EditorialFormValues;
   enableAiGenerate?: boolean;
   enableAiActions?: boolean;
+  sectionKicker?: string;
+  bodyLabel?: string;
+  bodyPlaceholder?: string;
+  backHref?: string;
+  backLabel?: string;
 };
 
 const emptyValues: EditorialFormValues = {
@@ -37,13 +42,18 @@ export function EditorialForm({
   submitLabel = "Guardar editorial",
   initialValues = emptyValues,
   enableAiGenerate = false,
-  enableAiActions = false
+  enableAiActions = false,
+  sectionKicker = "Editor de Editoriales",
+  bodyLabel = "Cuerpo editorial",
+  bodyPlaceholder = "Tesis, contexto, argumentos, matices, cierre.",
+  backHref = "/panel/editoriales",
+  backLabel = "Volver a editoriales"
 }: EditorialFormProps) {
   return (
     <section className="admin-panel admin-section-span admin-editor-panel" id="editor">
       <div className="admin-panel-heading">
         <div>
-          <span className="kicker">Editor de Editoriales</span>
+          <span className="kicker">{sectionKicker}</span>
           <h2>{title}</h2>
           <p>{description}</p>
         </div>
@@ -96,12 +106,12 @@ export function EditorialForm({
           </label>
 
           <label className="case-field case-field-span-2">
-            <span>Cuerpo editorial</span>
+            <span>{bodyLabel}</span>
             <textarea
               name="body"
               rows={12}
               defaultValue={initialValues.body}
-              placeholder="Tesis, contexto, argumentos, matices, cierre."
+              placeholder={bodyPlaceholder}
               required
             />
           </label>
@@ -117,8 +127,8 @@ export function EditorialForm({
         </div>
 
         <div className="case-form-actions">
-          <a className="button secondary" href="/panel/editoriales">
-            Volver a editoriales
+          <a className="button secondary" href={backHref}>
+            {backLabel}
           </a>
           <div className="case-form-action-group">
             {enableAiGenerate || enableAiActions ? (

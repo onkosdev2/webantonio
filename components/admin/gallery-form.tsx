@@ -47,7 +47,7 @@ export function GalleryForm({
         <div className="case-form-grid">
           <label className="case-field case-field-span-2">
             <span>Titulo</span>
-            <input name="title" defaultValue={initialValues.title} required />
+            <input name="title" defaultValue={initialValues.title} />
           </label>
 
           <label className="case-field case-field-span-2">
@@ -94,6 +94,15 @@ export function GalleryForm({
             <textarea name="altText" rows={4} defaultValue={initialValues.altText} />
           </label>
 
+          <label className="case-field case-field-span-2">
+            <span>Brief visual para IA</span>
+            <textarea
+              name="brief"
+              rows={5}
+              placeholder="Describe el recurso, contexto clinico, hallazgos visibles, cautelas y uso docente. La IA lo usara para mejorar titulo y texto alternativo."
+            />
+          </label>
+
           <label className="case-checkbox">
             <input
               type="checkbox"
@@ -112,7 +121,15 @@ export function GalleryForm({
           <a className="button secondary" href="/panel/galeria">
             Volver a galería
           </a>
-          <button className="button primary" type="submit">
+          <button
+            className="button secondary"
+            type="submit"
+            name="intent"
+            value="ai_enrich"
+          >
+            Enriquecer con IA
+          </button>
+          <button className="button primary" type="submit" name="intent" value="save">
             {submitLabel}
           </button>
         </div>

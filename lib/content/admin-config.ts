@@ -3,6 +3,7 @@ export const adminNavigation = [
   { href: "/panel/casos", label: "Casos Clinicos", shortLabel: "Casos" },
   { href: "/panel/noticias", label: "Noticias", shortLabel: "Noticias" },
   { href: "/panel/editoriales", label: "Editoriales", shortLabel: "Editoriales" },
+  { href: "/panel/investigacion", label: "Investigacion", shortLabel: "Investigacion" },
   { href: "/panel/reflexiones", label: "Reflexiones", shortLabel: "Reflexiones" },
   { href: "/panel/historias", label: "Historias", shortLabel: "Historias" },
   { href: "/panel/galeria", label: "Galeria Clinica", shortLabel: "Galeria" },

@@ -19,8 +19,9 @@ export default async function PanelColaIaPage({
   };
 
   const pieceTypeParam = getValue("pieceType");
-  const initialPieceType: "news_item" | "editorial" | "reflection" | "story" | "clinical_case" =
+  const initialPieceType: "news_item" | "editorial" | "research" | "reflection" | "story" | "clinical_case" =
     pieceTypeParam === "editorial" ||
+    pieceTypeParam === "research" ||
     pieceTypeParam === "reflection" ||
     pieceTypeParam === "story" ||
     pieceTypeParam === "clinical_case"

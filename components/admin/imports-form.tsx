@@ -37,6 +37,7 @@ export function ImportsForm({ action }: ImportsFormProps) {
             <span>Tipo de payload</span>
             <select name="payloadType" defaultValue="editorial">
               <option value="editorial">editorial</option>
+              <option value="research">research</option>
               <option value="clinical_case">clinical_case</option>
               <option value="news_item">news_item</option>
               <option value="reflection">reflection</option>

@@ -16,6 +16,10 @@ export async function HomePage() {
     {
       value: String(counts.editorials).padStart(2, "0"),
       label: "editoriales publicadas"
+    },
+    {
+      value: String(counts.research).padStart(2, "0"),
+      label: "investigacion publicada"
     }
   ] as const;
 

@@ -6,6 +6,7 @@ Plataforma editorial oncológica híbrida con `Next.js`, `Prisma`, `IA` y capa
 - casos clínicos
 - noticias oncológicas
 - editoriales
+- investigación
 - reflexiones
 - historias
 - galería clínica
@@ -19,7 +20,7 @@ La base ya está operativa en estas áreas:
 - generación de borradores con `GLM 5.1`
 - importaciones externas con trazabilidad
 - motor de noticias oncológicas por RSS + IA
-- tools y recursos MCP sobre base real
+- tools y recursos MCP sobre base real, incluyendo investigación como tipo propio
 
 ## Módulos principales
 
@@ -43,6 +44,7 @@ Rutas operativas:
 - `/panel/casos`
 - `/panel/noticias`
 - `/panel/editoriales`
+- `/panel/investigacion`
 - `/panel/reflexiones`
 - `/panel/historias`
 - `/panel/galeria`

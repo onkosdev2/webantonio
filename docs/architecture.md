@@ -27,7 +27,7 @@ Construir una plataforma editorial oncologica hibrida para el Dr. Antonio Camarg
 ## Estado implementado
 
 - portada y secciones públicas conectadas a contenido `PUBLISHED`
-- panel real para casos, noticias, editoriales, reflexiones, historias y galería
+- panel real para casos, noticias, editoriales, investigacion, reflexiones, historias y galería
 - dashboard privado con métricas vivas
 - generación de borradores con `GLM 5.1`
 - flujo editorial con `draft`, `pending_review`, `published` y `archived`

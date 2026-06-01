@@ -97,7 +97,9 @@ export function AiPanel({
                   <td>
                     {item.brief.pieceType === "editorial"
                       ? "Editorial"
-                      : item.brief.pieceType === "reflection"
+                      : item.brief.pieceType === "research"
+                        ? "Investigación"
+                        : item.brief.pieceType === "reflection"
                         ? "Reflexión"
                         : item.brief.pieceType === "story"
                           ? "Historia"

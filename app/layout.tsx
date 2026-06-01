@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Dr. Antonio Camargo | Oncologia, Casos Clinicos y Pensamiento Medico",
   description:
-    "Plataforma editorial oncologica con casos clinicos, noticias, editoriales, reflexiones e integraciones MCP."
+    "Plataforma editorial oncologica con casos clinicos, noticias, editoriales, investigacion, reflexiones e integraciones MCP."
 };
 
 export default function RootLayout({

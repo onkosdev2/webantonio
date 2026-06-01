@@ -1,9 +1,10 @@
 const navigation = [
-  { href: "/casos-clinicos", label: "Casos" },
   { href: "/noticias", label: "Noticias" },
-  { href: "/editoriales", label: "Editoriales" },
+  { href: "/editoriales", label: "Editorial" },
+  { href: "/casos-clinicos", label: "Casos" },
   { href: "/historias", label: "Historias" },
   { href: "/reflexiones", label: "Reflexiones" },
+  { href: "/investigacion", label: "Investigacion" },
   { href: "/galeria", label: "Galeria" },
   { href: "/sobre-mi", label: "Sobre mi" }
 ];

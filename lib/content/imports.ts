@@ -7,6 +7,8 @@ function buildPanelHref(type: ContentType) {
       return "/panel/casos";
     case "EDITORIAL":
       return "/panel/editoriales";
+    case "RESEARCH":
+      return "/panel/investigacion";
     case "NEWS_ITEM":
       return "/panel/noticias";
     case "REFLECTION":

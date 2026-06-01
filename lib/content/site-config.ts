@@ -16,6 +16,12 @@ export const contentSections = [
     title: "Editoriales y Reflexiones",
     description:
       "Espacio para criterio clinico, lectura critica, pensamiento medico y posicionamiento profesional."
+  },
+  {
+    kicker: "Evidencia",
+    title: "Investigacion Clinica",
+    description:
+      "Seccion propia para estudios, biomarcadores, evidencia oncologica y lectura critica con utilidad practica."
   }
 ] as const;
 

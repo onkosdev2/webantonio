@@ -1,5 +1,6 @@
 type DraftKind =
   | "editorial"
+  | "research"
   | "news_item"
   | "reflection"
   | "story"
@@ -20,6 +21,22 @@ type GlmDraftOutput = {
   title: string;
   summary: string;
   body: string;
+  generationMode: "glm" | "fallback";
+  fallbackReason?: string;
+};
+
+type GalleryMetadataInput = {
+  title: string;
+  altText: string;
+  mediaType: string;
+  linkedContentSlug: string;
+  brief: string;
+};
+
+type GalleryMetadataOutput = {
+  title: string;
+  altText: string;
+  mediaType: string;
   generationMode: "glm" | "fallback";
   fallbackReason?: string;
 };
@@ -47,6 +64,42 @@ const GLM_API_URL =
 const GLM_MODEL = process.env.GLM_MODEL ?? "glm-5.1";
 
 function fallbackDraft(input: GlmDraftInput): GlmDraftOutput {
+  if (input.kind === "research") {
+    return {
+      title: `Investigacion: ${input.topic}`,
+      summary:
+        `Borrador de investigacion sobre ${input.topic} con enfoque ${input.angle} ` +
+        `y objetivo ${input.goal}.`,
+      body:
+        `Pregunta o foco de investigacion
+
+${input.topic}
+
+` +
+        `Contexto clinico
+
+${input.focus}
+
+` +
+        `Lectura critica
+
+${input.angle}
+
+` +
+        `Claves de evidencia
+
+${input.notes}
+
+` +
+        `Aplicacion editorial
+
+` +
+        `Este borrador organiza una lectura ${input.tone} de la evidencia disponible, ` +
+        `con extension ${input.length} y proposito de ${input.goal}. Debe verificarse antes de publicacion.`,
+      generationMode: "fallback"
+    };
+  }
+
   if (input.kind === "editorial") {
     return {
       title: `Editorial: ${input.topic}`,
@@ -357,6 +410,124 @@ export async function generateDraftWithGlm(
     console.warn("[GLM] Exception while generating draft, using fallback draft.", error);
     return {
       ...fallbackDraft(input),
+      fallbackReason: error instanceof Error ? error.message : "excepcion desconocida"
+    };
+  }
+}
+
+function fallbackGalleryMetadata(input: GalleryMetadataInput): GalleryMetadataOutput {
+  const title = input.title.trim() || input.brief.split("\n")[0]?.trim() || "Activo visual clinico";
+  const context = input.brief.trim() || input.altText.trim() || title;
+
+  return {
+    title,
+    altText:
+      input.altText.trim() ||
+      `Recurso visual clinico relacionado con ${context.slice(0, 180)}. Revisar antes de publicacion.`,
+    mediaType: input.mediaType.trim() || "image",
+    generationMode: "fallback"
+  };
+}
+
+export async function generateGalleryMetadataWithGlm(
+  input: GalleryMetadataInput
+): Promise<GalleryMetadataOutput> {
+  const apiKey = process.env.GLM_API_KEY;
+
+  if (!apiKey) {
+    return {
+      ...fallbackGalleryMetadata(input),
+      fallbackReason: "GLM_API_KEY ausente"
+    };
+  }
+
+  const systemPrompt =
+    "Eres un asistente editorial oncológico para catalogar activos visuales del Dr. Antonio Camargo. " +
+    "Debes devolver exclusivamente JSON válido con las claves title, altText y mediaType. " +
+    "No inventes datos identificables ni hallazgos clínicos que no estén en el brief. " +
+    "El texto alternativo debe ser descriptivo, sobrio y útil para accesibilidad.";
+
+  const userPrompt =
+    `Titulo actual: ${input.title}
+` +
+    `Texto alternativo actual: ${input.altText}
+` +
+    `Tipo de media actual: ${input.mediaType}
+` +
+    `Contenido relacionado: ${input.linkedContentSlug || "sin vinculo"}
+` +
+    `Brief visual del usuario:
+${input.brief}
+
+` +
+    "Enriquece los metadatos del activo visual para galeria clinica. Devuelve JSON con esta forma exacta:\n" +
+    '{ "title": "...", "altText": "...", "mediaType": "..." }';
+
+  try {
+    const response = await fetchWithTimeout(GLM_API_URL, 45000, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: GLM_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        thinking: {
+          type: "disabled"
+        },
+        temperature: 0.25,
+        max_tokens: 500
+      })
+    });
+
+    if (!response.ok) {
+      return {
+        ...fallbackGalleryMetadata(input),
+        fallbackReason: `respuesta no valida del proveedor (${response.status})`
+      };
+    }
+
+    const data = (await response.json()) as {
+      choices?: Array<{
+        message?: {
+          content?: GlmMessageContent;
+          reasoning_content?: string;
+        };
+      }>;
+    };
+
+    const message = data.choices?.[0]?.message;
+    const content = extractMessageText(message?.content, message?.reasoning_content);
+
+    if (!content) {
+      return {
+        ...fallbackGalleryMetadata(input),
+        fallbackReason: "respuesta vacia del modelo"
+      };
+    }
+
+    const parsed = JSON.parse(extractJsonBlock(content)) as Partial<GalleryMetadataOutput>;
+
+    if (!parsed.title || !parsed.altText || !parsed.mediaType) {
+      return {
+        ...fallbackGalleryMetadata(input),
+        fallbackReason: "JSON incompleto del modelo"
+      };
+    }
+
+    return {
+      title: parsed.title.trim(),
+      altText: parsed.altText.trim(),
+      mediaType: parsed.mediaType.trim(),
+      generationMode: "glm"
+    };
+  } catch (error) {
+    return {
+      ...fallbackGalleryMetadata(input),
       fallbackReason: error instanceof Error ? error.message : "excepcion desconocida"
     };
   }

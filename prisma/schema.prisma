@@ -10,6 +10,7 @@ datasource db {
 enum ContentType {
   CLINICAL_CASE
   EDITORIAL
+  RESEARCH
   NEWS_ITEM
   STORY
   REFLECTION

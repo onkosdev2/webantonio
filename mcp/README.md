@@ -16,14 +16,15 @@ APIs:
 ## Alcance actual
 
 - exponer recursos del archivo editorial
-- permitir busqueda de casos, noticias y editoriales
-- crear borradores desde agentes externos
+- permitir busqueda de casos, noticias, editoriales e investigacion
+- crear borradores desde agentes externos, incluida investigacion
 - mover contenido a cola de revision
 
 ## Tools activas
 
 - `search_cases`
 - `search_news`
+- `search_research`
 - `create_draft`
 - `queue_for_review`
 

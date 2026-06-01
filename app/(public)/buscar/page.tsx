@@ -15,6 +15,7 @@ const typeOptions = [
   { value: "clinical_case", label: "Caso clinico" },
   { value: "news_item", label: "Noticia oncologica" },
   { value: "editorial", label: "Editorial" },
+  { value: "research", label: "Investigacion" },
   { value: "reflection", label: "Reflexion" },
   { value: "story", label: "Historia" }
 ] as const;
@@ -34,6 +35,7 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
       | "clinical_case"
       | "news_item"
       | "editorial"
+      | "research"
       | "reflection"
       | "story"
       | "",
@@ -47,7 +49,7 @@ export default async function BuscarPage({ searchParams }: BuscarPageProps) {
     <PublicCollectionPage
       kicker="Busqueda Global"
       title="Buscar en el archivo oncológico"
-      description="Un punto de entrada transversal para localizar casos, noticias, editoriales, reflexiones e historias sin romper la lectura editorial del sitio."
+      description="Un punto de entrada transversal para localizar casos, noticias, editoriales, investigacion, reflexiones e historias sin romper la lectura editorial del sitio."
       signature="Archivo clínico de autor con navegación silenciosa"
       countLabel="resultados publicados"
       itemCount={filteredItems.length}

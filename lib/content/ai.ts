@@ -42,13 +42,15 @@ export async function getAiTasks() {
         ? `/panel/noticias/${task.content.slug}`
         : task.content?.type === "EDITORIAL"
           ? `/panel/editoriales/${task.content.slug}`
-          : task.content?.type === "CLINICAL_CASE"
-            ? `/panel/casos/${task.content.slug}`
-            : task.content?.type === "REFLECTION"
-              ? `/panel/reflexiones/${task.content.slug}`
-              : task.content?.type === "STORY"
-                ? `/panel/historias/${task.content.slug}`
-            : "";
+          : task.content?.type === "RESEARCH"
+            ? `/panel/investigacion/${task.content.slug}`
+            : task.content?.type === "CLINICAL_CASE"
+              ? `/panel/casos/${task.content.slug}`
+              : task.content?.type === "REFLECTION"
+                ? `/panel/reflexiones/${task.content.slug}`
+                : task.content?.type === "STORY"
+                  ? `/panel/historias/${task.content.slug}`
+                  : "";
     const brief = parsePromptBrief(task.prompt);
     const reuseBriefHref =
       "/panel/cola-ia?" +

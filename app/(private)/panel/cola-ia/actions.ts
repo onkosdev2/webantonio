@@ -15,6 +15,7 @@ function getText(formData: FormData, key: string) {
 function parsePieceType(value: string) {
   if (
     value === "editorial" ||
+    value === "research" ||
     value === "reflection" ||
     value === "story" ||
     value === "clinical_case"
@@ -41,6 +42,8 @@ function resolvePieceLabel(pieceType: ReturnType<typeof parsePieceType>) {
   switch (pieceType) {
     case "editorial":
       return "Editorial";
+    case "research":
+      return "Investigación";
     case "reflection":
       return "Reflexión";
     case "story":
@@ -114,20 +117,27 @@ export async function createAiTaskAction(formData: FormData) {
     notes
   });
 
+  const draftType = pieceType;
+  const draftTags = [
+    "ia",
+    generated.generationMode === "glm" ? "ai_glm" : "ai_fallback",
+    focus,
+    angle,
+    goal,
+    pieceType
+  ];
+
+  if (pieceType === "research") {
+    draftTags.push("investigacion", "research");
+  }
+
   const created = await createDraftViaMcp({
-    type: pieceType,
+    type: draftType,
     title: generated.title,
     summary: generated.summary,
     body: generated.body,
     source: "ia_interna",
-    tags: [
-      "ia",
-      generated.generationMode === "glm" ? "ai_glm" : "ai_fallback",
-      focus,
-      angle,
-      goal,
-      pieceType
-    ],
+    tags: draftTags,
     status: "draft",
     tumorType: pieceType === "clinical_case" || pieceType === "news_item" ? focus : undefined
   });
