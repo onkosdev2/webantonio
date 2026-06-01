@@ -73,7 +73,11 @@ export function GalleryPanel({
           {items.map((item) => (
             <article key={item.id} className="gallery-admin-card">
               <div className="gallery-admin-media">
-                <img src={item.storagePath} alt={item.altText || item.title} />
+                {item.mediaType === "video" ? (
+                  <video src={item.storagePath} controls preload="metadata" />
+                ) : (
+                  <img src={item.storagePath} alt={item.altText || item.title} />
+                )}
               </div>
 
               <div className="gallery-admin-copy">

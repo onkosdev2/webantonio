@@ -1396,15 +1396,38 @@ img {
   border-top: 1px solid rgba(22, 33, 31, 0.08);
 }
 
-.gallery-admin-grid,
-.public-gallery-grid {
+.gallery-admin-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.15rem;
 }
 
-.gallery-admin-card,
-.public-gallery-card {
+.gallery-header {
+  display: grid;
+  gap: 0.85rem;
+  padding: 2.2rem 0 0.4rem;
+}
+
+.gallery-header .section-title {
+  max-width: 760px;
+}
+
+.gallery-header .section-copy {
+  max-width: 720px;
+}
+
+.public-gallery-section {
+  display: grid;
+  gap: 1.4rem;
+}
+
+.public-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.gallery-admin-card {
   overflow: hidden;
   border-radius: 28px;
   background: rgba(255, 250, 243, 0.84);
@@ -1412,25 +1435,101 @@ img {
   box-shadow: var(--shadow);
 }
 
-.gallery-admin-media,
-.public-gallery-media {
+.public-gallery-card {
+  grid-column: span 4;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  min-width: 0;
+  border-radius: 8px;
+  background: rgba(255, 250, 243, 0.74);
+  border: 1px solid rgba(22, 33, 31, 0.1);
+  box-shadow: 0 18px 48px rgba(18, 28, 27, 0.08);
+}
+
+.public-gallery-card.is-featured {
+  grid-column: span 8;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  grid-template-rows: auto;
+}
+
+.gallery-admin-media {
   aspect-ratio: 4 / 3;
   background: rgba(18, 56, 54, 0.08);
 }
 
+.public-gallery-media {
+  aspect-ratio: 4 / 3;
+  min-width: 0;
+  background: #102f2d;
+}
+
+.public-gallery-card.is-featured .public-gallery-media {
+  aspect-ratio: 16 / 10;
+}
+
 .gallery-admin-media img,
-.public-gallery-media img {
+.gallery-admin-media video,
+.public-gallery-media img,
+.public-gallery-media video {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.gallery-admin-copy,
-.public-gallery-copy {
+.gallery-admin-copy {
   display: grid;
   gap: 0.9rem;
   padding: 1.25rem;
+}
+
+.public-gallery-copy {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+}
+
+.public-gallery-card.is-featured .public-gallery-copy {
+  padding: 1.25rem;
+}
+
+.public-gallery-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.public-gallery-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  max-width: 100%;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  background: rgba(24, 76, 70, 0.08);
+  border: 1px solid rgba(24, 76, 70, 0.1);
+  color: #335650;
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.public-gallery-title {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.public-gallery-description {
+  margin: 0;
+  color: var(--muted);
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.65;
 }
 
 .gallery-admin-copy h3 {
@@ -1465,6 +1564,12 @@ img {
   .gallery-admin-grid,
   .public-gallery-grid,
   .admin-stat-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .public-gallery-card,
+  .public-gallery-card.is-featured {
+    grid-column: auto;
     grid-template-columns: 1fr;
   }
 

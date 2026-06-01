@@ -51,12 +51,16 @@ export function GalleryForm({
           </label>
 
           <label className="case-field case-field-span-2">
+            <span>Subir archivo</span>
+            <input name="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" />
+          </label>
+
+          <label className="case-field case-field-span-2">
             <span>Ruta o URL del archivo</span>
             <input
               name="storagePath"
               defaultValue={initialValues.storagePath}
-              placeholder="/mi-imagen.jpg o https://..."
-              required
+              placeholder="Se rellena al subir archivo o puedes pegar una URL"
             />
           </label>
 

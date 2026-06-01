@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { generateGalleryMetadataWithGlm } from "@/lib/ai/glm";
+import { uploadGalleryFileToR2 } from "@/lib/storage/r2";
 
 function getText(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -14,19 +15,33 @@ function getBoolean(formData: FormData, key: string) {
   return formData.get(key) === "on";
 }
 
-function buildGalleryPayload(formData: FormData) {
+function getFile(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return value instanceof File && value.size > 0 ? value : null;
+}
+
+async function buildGalleryPayload(formData: FormData) {
+  const uploadedFile = await uploadGalleryFileToR2(getFile(formData, "mediaFile") as File);
+  const storagePath = uploadedFile?.url ?? getText(formData, "storagePath");
+
+  if (!storagePath) {
+    throw new Error("Sube un archivo o indica una ruta/URL para el activo visual.");
+  }
+
   return {
     title: getText(formData, "title"),
     altText: getText(formData, "altText"),
-    storagePath: getText(formData, "storagePath"),
-    mediaType: getText(formData, "mediaType") || "image",
+    storagePath,
+    mediaType: uploadedFile?.mediaType ?? (getText(formData, "mediaType") || "image"),
     linkedContentSlug: getText(formData, "linkedContentSlug"),
     brief: getText(formData, "brief"),
     isSensitive: getBoolean(formData, "isSensitive")
   };
 }
 
-function resolveGalleryTitle(payload: ReturnType<typeof buildGalleryPayload>) {
+type GalleryPayload = Awaited<ReturnType<typeof buildGalleryPayload>>;
+
+function resolveGalleryTitle(payload: GalleryPayload) {
   return (
     payload.title ||
     payload.brief.split("\n")[0]?.trim() ||
@@ -35,7 +50,7 @@ function resolveGalleryTitle(payload: ReturnType<typeof buildGalleryPayload>) {
   );
 }
 
-async function enrichGalleryPayload(payload: ReturnType<typeof buildGalleryPayload>) {
+async function enrichGalleryPayload(payload: GalleryPayload) {
   const generated = await generateGalleryMetadataWithGlm({
     title: payload.title,
     altText: payload.altText,
@@ -67,7 +82,7 @@ async function resolveLinkedContentId(slug: string) {
 
 export async function createGalleryAssetAction(formData: FormData) {
   const intent = getText(formData, "intent");
-  const basePayload = buildGalleryPayload(formData);
+  const basePayload = await buildGalleryPayload(formData);
   const payload = intent === "ai_enrich" ? await enrichGalleryPayload(basePayload) : basePayload;
   const linkedContentId = await resolveLinkedContentId(payload.linkedContentSlug);
 
@@ -89,7 +104,7 @@ export async function createGalleryAssetAction(formData: FormData) {
 
 export async function updateGalleryAssetAction(id: string, formData: FormData) {
   const intent = getText(formData, "intent");
-  const basePayload = buildGalleryPayload(formData);
+  const basePayload = await buildGalleryPayload(formData);
   const payload = intent === "ai_enrich" ? await enrichGalleryPayload(basePayload) : basePayload;
   const linkedContentId = await resolveLinkedContentId(payload.linkedContentSlug);
 
