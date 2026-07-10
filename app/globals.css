@@ -72,16 +72,24 @@ img {
   gap: 0.15rem;
 }
 
-.brand span:first-child {
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #6f6654;
+.brand-name {
+  font-family: var(--font-brand), "Baskerville", "Iowan Old Style", Palatino,
+    Georgia, serif;
+  font-size: clamp(1.3rem, 2.1vw, 1.6rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--accent);
 }
 
-.brand span:last-child {
-  font-size: 1.28rem;
+.brand-tagline {
+  font-family: var(--font-brand), "Baskerville", "Iowan Old Style", Palatino,
+    Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
   letter-spacing: 0.01em;
+  color: #8a6a3c;
 }
 
 .nav {
@@ -1205,7 +1213,7 @@ img {
 .public-filter-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: flex-end;
   gap: 0.8rem;
   margin-bottom: 1.4rem;
   padding: 1.1rem 1.2rem;
@@ -1324,6 +1332,8 @@ img {
 
 .public-article-wrap {
   display: grid;
+  width: min(880px, 100%);
+  margin-inline: auto;
 }
 
 .public-article {
@@ -1368,7 +1378,6 @@ img {
 
 .public-article-summary {
   margin: 0;
-  max-width: 58ch;
   color: var(--muted);
   font-size: 1.1rem;
   line-height: 1.85;
@@ -1381,10 +1390,42 @@ img {
 
 .public-article-prose p {
   margin: 0;
-  max-width: 68ch;
   font-size: 1.08rem;
   line-height: 1.95;
   color: #24302d;
+}
+
+.public-article-subtitle {
+  margin: 1.4rem 0 0;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.public-article-figure {
+  margin: 1.6rem 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.public-article-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.public-article-figure figcaption {
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--muted);
+  text-align: center;
+  font-style: italic;
 }
 
 .public-article-footer {
@@ -1633,5 +1674,238 @@ img {
 
   .case-form-actions {
     flex-direction: column;
+  }
+}
+
+/* =====================================================================
+   Navegación: sección activa, foco accesible y menús responsive
+   ===================================================================== */
+
+:root {
+  --space-1: 0.5rem;
+  --space-2: 0.9rem;
+  --space-3: 1.25rem;
+  --space-4: 1.75rem;
+  --space-5: 2.5rem;
+}
+
+/* Foco accesible coherente en toda la interfaz */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- Botones hamburguesa (ocultos en escritorio) --- */
+.nav-toggle,
+.admin-nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.nav-toggle {
+  border: 1px solid var(--line);
+  background: rgba(255, 251, 245, 0.72);
+  color: #22312f;
+}
+
+.admin-nav-toggle {
+  border: 1px solid rgba(198, 165, 111, 0.3);
+  background: rgba(255, 248, 237, 0.06);
+  color: #f5ede0;
+}
+
+.nav-toggle-bar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.topbar[data-open="true"] .nav-toggle-bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.topbar[data-open="true"] .nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.topbar[data-open="true"] .nav-toggle-bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* --- Sección activa: navegación pública --- */
+.nav a {
+  position: relative;
+  transition: color 160ms ease;
+}
+
+.nav a:hover {
+  color: var(--accent);
+}
+
+.nav a.is-active {
+  color: var(--accent);
+}
+
+.nav a.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gold);
+}
+
+/* --- Sección activa: navegación del panel --- */
+.admin-sidebar-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.admin-sidebar-head .admin-brand {
+  flex: 1;
+}
+
+.admin-nav-link {
+  position: relative;
+}
+
+.admin-nav-link.is-active {
+  background: var(--gold-soft);
+  border-color: rgba(198, 165, 111, 0.5);
+}
+
+.admin-nav-link.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--gold);
+}
+
+.admin-nav-link.is-active span {
+  color: #fff;
+}
+
+/* --- Header público: drawer en móvil --- */
+@media (max-width: 900px) {
+  .topbar-inner {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 0.75rem;
+  }
+
+  .brand {
+    order: 1;
+  }
+
+  .nav-toggle {
+    display: flex;
+    order: 2;
+    margin-left: auto;
+  }
+
+  .nav {
+    order: 3;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    display: none;
+  }
+
+  .topbar[data-open="true"] .nav {
+    display: flex;
+  }
+
+  .nav a {
+    padding: 0.8rem 0.4rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .nav a.is-active::after {
+    display: none;
+  }
+
+  .nav a.is-active {
+    border-left: 3px solid var(--gold);
+    padding-left: 0.7rem;
+  }
+
+  .topbar-search {
+    order: 4;
+    flex-basis: 100%;
+    display: none;
+  }
+
+  .topbar[data-open="true"] .topbar-search {
+    display: flex;
+  }
+}
+
+/* --- Panel: la lateral se colapsa en barra superior con drawer --- */
+@media (max-width: 960px) {
+  .admin-shell {
+    display: block;
+  }
+
+  .admin-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    min-height: auto;
+    padding: 1rem 1.25rem;
+  }
+
+  .admin-nav-toggle {
+    display: flex;
+  }
+
+  .admin-brand {
+    padding: 0;
+    border: none;
+    background: none;
+  }
+
+  .admin-brand strong {
+    font-size: 1.35rem;
+  }
+
+  .admin-brand p {
+    display: none;
+  }
+
+  .admin-nav {
+    margin: 1rem 0 0;
+    display: none;
+  }
+
+  .admin-shell[data-nav-open="true"] .admin-nav {
+    display: grid;
+  }
+
+  .admin-sidebar-card {
+    display: none;
+  }
+
+  .admin-main {
+    padding: 1.25rem;
   }
 }

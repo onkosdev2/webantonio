@@ -60,6 +60,7 @@ async function generateStoryDraft(payload: ReturnType<typeof buildPayload>, aiTo
 }
 
 function revalidateStoryPaths(previousSlug: string, nextSlug: string) {
+  revalidatePath("/");
   revalidatePath("/panel");
   revalidatePath("/panel/historias");
   revalidatePath(`/panel/historias/${previousSlug}`);

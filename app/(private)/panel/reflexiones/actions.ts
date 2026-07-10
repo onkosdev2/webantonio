@@ -60,6 +60,7 @@ async function generateReflectionDraft(payload: ReturnType<typeof buildPayload>,
 }
 
 function revalidateReflectionPaths(previousSlug: string, nextSlug: string) {
+  revalidatePath("/");
   revalidatePath("/panel");
   revalidatePath("/panel/reflexiones");
   revalidatePath(`/panel/reflexiones/${previousSlug}`);

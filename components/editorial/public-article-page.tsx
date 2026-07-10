@@ -20,11 +20,35 @@ type PublicArticlePageProps = {
   }>;
 };
 
-function splitBody(body: string) {
+type ArticleBlock =
+  | { kind: "heading"; text: string }
+  | { kind: "image"; src: string; caption: string }
+  | { kind: "paragraph"; text: string };
+
+const IMAGE_MARKDOWN = /^!\[([^\]]*)\]\((\S+?)\)$/;
+const IMAGE_URL = /^(https?:\/\/\S+\.(?:png|jpe?g|webp|gif|svg))$/i;
+
+function parseBody(body: string): ArticleBlock[] {
   return body
     .split(/\n{2,}/)
     .map((block) => block.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((block) => {
+      const markdownImage = block.match(IMAGE_MARKDOWN);
+      if (markdownImage) {
+        return { kind: "image", src: markdownImage[2], caption: markdownImage[1] ?? "" };
+      }
+
+      if (IMAGE_URL.test(block)) {
+        return { kind: "image", src: block, caption: "" };
+      }
+
+      if (block.startsWith("## ")) {
+        return { kind: "heading", text: block.slice(3).trim() };
+      }
+
+      return { kind: "paragraph", text: block };
+    });
 }
 
 function renderChip(chip: PublicChip) {
@@ -54,7 +78,7 @@ export function PublicArticlePage({
   tags = [],
   relatedItems = []
 }: PublicArticlePageProps) {
-  const sections = splitBody(body);
+  const blocks = parseBody(body);
 
   return (
     <>
@@ -82,9 +106,27 @@ export function PublicArticlePage({
             </header>
 
             <div className="public-article-prose">
-              {sections.map((section, index) => (
-                <p key={`${index}-${section.slice(0, 24)}`}>{section}</p>
-              ))}
+              {blocks.map((block, index) => {
+                if (block.kind === "image") {
+                  return (
+                    <figure key={index} className="public-article-figure">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={block.src} alt={block.caption} loading="lazy" />
+                      {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+                    </figure>
+                  );
+                }
+
+                if (block.kind === "heading") {
+                  return (
+                    <h2 key={index} className="public-article-subtitle">
+                      {block.text}
+                    </h2>
+                  );
+                }
+
+                return <p key={index}>{block.text}</p>;
+              })}
             </div>
 
             {tags.length > 0 ? (
