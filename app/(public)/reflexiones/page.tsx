@@ -7,17 +7,17 @@ export default async function ReflexionesPage() {
 
   return (
     <PublicCollectionPage
-      kicker="Pensamiento Medico"
+      kicker="Pensamiento médico"
       title="Reflexiones"
-      description="Notas breves sobre incertidumbre, decision clinica, docencia, comunicacion y oficio medico."
-      signature="Fragmentos de criterio, oficio y pensamiento oncologico"
+      description="Notas breves sobre incertidumbre, decisión clínica, docencia, comunicación y oficio médico."
+      signature="Criterio clínico y mirada humana"
       countLabel="reflexiones publicadas"
       itemCount={items.length}
       items={items.map((item) => ({
         href: `/reflexiones/${item.slug}`,
         title: item.title,
         summary: item.summary,
-        eyebrow: item.source || "Reflexion",
+        eyebrow: item.source || "Reflexión",
         meta: item.tags
       }))}
       emptyTitle="Todavía no hay reflexiones publicadas."

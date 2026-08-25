@@ -4,6 +4,7 @@ type NewsFormValues = {
   title: string;
   slug: string;
   source: string;
+  sourceUrl: string;
   summary: string;
   body: string;
   status: ContentStatus;
@@ -26,6 +27,7 @@ const emptyValues: NewsFormValues = {
   title: "",
   slug: "",
   source: "",
+  sourceUrl: "",
   summary: "",
   body: "",
   status: ContentStatus.PENDING_REVIEW,
@@ -75,6 +77,17 @@ export function NewsForm({
               name="source"
               defaultValue={initialValues.source}
               placeholder="ASCO, NEJM, FDA, ESMO..."
+              required
+            />
+          </label>
+
+          <label className="case-field case-field-span-2">
+            <span>URL de la fuente</span>
+            <input
+              name="sourceUrl"
+              type="url"
+              defaultValue={initialValues.sourceUrl}
+              placeholder="https://www.esmo.org/..."
               required
             />
           </label>

@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { ImportState } from "@prisma/client";
 import { db } from "@/lib/db";
+import { getApiUser } from "@/lib/auth/session";
 import { createDraftViaMcp } from "@/lib/mcp/server";
 import { contentImportSchema } from "@/lib/validation/content";
 
 export async function POST(request: Request) {
+  const user = await getApiUser();
+
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   const payload = await request.json();
   const result = contentImportSchema.safeParse(payload);
 

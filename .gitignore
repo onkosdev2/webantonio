@@ -12,3 +12,12 @@ prisma/prisma/dev.db
 prisma/prisma/dev.db-journal
 prisma/**/*.bak-*
 tsconfig.tsbuildinfo
+
+# Local development and design-tool state
+.agents/
+.codex/
+.impeccable/
+/Pasted image.png
+/hero.png
+*:Zone.Identifier
+/wget-log

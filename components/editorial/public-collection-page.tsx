@@ -1,10 +1,29 @@
+/*
+ * THESIS: Cada categoría es la mesa de contenidos de una misma revista clínica.
+ * OWN-WORLD: Hero verde biblioteca, fotografía editorial, marfil y líneas botánicas.
+ * STORY: El lector reconoce la sección, filtra el archivo y entra a una lectura sin perder contexto.
+ * FIRST VIEWPORT: Hero compacto con título, propósito, volumen publicado y navegación transversal.
+ * FORM: Índice editorial del jardín visual establecido.
+ */
+
+import Image from "next/image";
+import { ArrowRight, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { SiteHeader } from "@/components/layout/site-header";
+import type { PublicPublicationDate } from "@/lib/content/public-dates";
+import { EditorialTopicNav } from "./editorial-topic-nav";
+import { PublicationDateTime } from "./publication-date-time";
+import styles from "./public-collection-page.module.css";
 
 type PublicCollectionItem = {
   href: string;
   title: string;
   summary: string;
   eyebrow?: string;
+  image?: {
+    src: string;
+    alt: string;
+  } | null;
+  publicationDate?: PublicPublicationDate | null;
   meta?: Array<string | { label: string; href?: string }>;
 };
 
@@ -31,6 +50,25 @@ type PublicCollectionPageProps = {
   clearHref?: string;
 };
 
+function getSectionPresentation(title: string, searchAction?: string) {
+  const value = `${searchAction ?? ""} ${title}`.toLowerCase();
+
+  if (value.includes("casos")) {
+    return { href: "/casos-clinicos", image: "/editorial-cancer-cells.png", label: "Archivo clínico" };
+  }
+  if (value.includes("noticias")) {
+    return { href: "/noticias", image: "/editorial-ct-scan.png", label: "Actualidad" };
+  }
+  if (value.includes("investig")) {
+    return { href: "/investigacion", image: "/editorial-histology.png", label: "Evidencia" };
+  }
+  if (value.includes("reflex")) {
+    return { href: "/reflexiones", image: "/home-hero-wide.png", label: "Reflexiones" };
+  }
+
+  return { href: undefined, image: "/home-hero-wide.png", label: "Archivo editorial" };
+}
+
 export function PublicCollectionPage({
   kicker,
   title,
@@ -46,57 +84,71 @@ export function PublicCollectionPage({
   filters = [],
   clearHref
 }: PublicCollectionPageProps) {
+  const section = getSectionPresentation(title, searchAction);
+
   return (
     <>
       <SiteHeader />
 
-      <main className="page-chrome section-shell">
-        <section className="shell section-hero-grid">
-          <article className="panel section-hero-copy">
-            <span className="eyebrow">{kicker}</span>
-            <p className="section-signature">{signature}</p>
-            <h1 className="section-title">{title}</h1>
-            <p className="section-copy">{description}</p>
-
-            <div className="public-hero-metrics">
-              <div className="public-metric-card">
+      <main className={styles.page}>
+        <section className={styles.shell}>
+          <div className={styles.hero}>
+            <div className={styles.heroCopy}>
+              <p className={styles.kicker}>{kicker}</p>
+              <h1>{title}</h1>
+              <p className={styles.description}>{description}</p>
+              <div className={styles.heroMeta}>
                 <strong>{itemCount}</strong>
                 <span>{countLabel}</span>
-              </div>
-              <div className="public-metric-card">
-                <strong>PUBLISHED</strong>
-                <span>solo piezas públicas visibles en la web</span>
+                <i aria-hidden="true" />
+                <p>{signature}</p>
               </div>
             </div>
-          </article>
 
-          <aside className="section-hero-visual">
-            <div className="section-visual-label">Archivo Publicado</div>
-            <div className="panel section-visual-panel">
-              <img
-                className="section-visual-image"
-                src="/section-clinical-atlas.svg"
-                alt="Composicion editorial abstracta"
+            <div className={styles.heroVisual}>
+              <Image
+                src={section.image}
+                alt=""
+                fill
+                priority
+                sizes="(max-width: 760px) 100vw, 480px"
+                aria-hidden="true"
               />
+              <span>{section.label}</span>
             </div>
-          </aside>
+
+            <div className={styles.heroNav}>
+              <EditorialTopicNav activeHref={section.href} />
+            </div>
+          </div>
         </section>
 
-        <section className="shell public-collection-section">
+        <section className={`${styles.shell} ${styles.archive}`} aria-labelledby="archive-title">
+          <header className={styles.archiveHeader}>
+            <div>
+              <p>Archivo publicado</p>
+              <h2 id="archive-title">Lecturas para comprender con contexto</h2>
+            </div>
+            <span>{itemCount} {itemCount === 1 ? "entrada visible" : "entradas visibles"}</span>
+          </header>
+
           {searchAction ? (
-            <form action={searchAction} className="public-filter-bar">
-              <label className="public-search-field">
+            <form action={searchAction} className={styles.filterBar}>
+              <label className={styles.searchField}>
                 <span>Buscar en archivo</span>
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={searchQuery}
-                  placeholder="pulmon, EGFR, inmunoterapia, acceso..."
-                />
+                <div>
+                  <MagnifyingGlass size={17} aria-hidden="true" />
+                  <input
+                    type="search"
+                    name="q"
+                    defaultValue={searchQuery}
+                    placeholder="Pulmón, EGFR, inmunoterapia..."
+                  />
+                </div>
               </label>
 
               {filters.map((filter) => (
-                <label key={filter.name} className="public-filter-field">
+                <label key={filter.name} className={styles.filterField}>
                   <span>{filter.label}</span>
                   <select name={filter.name} defaultValue={filter.value ?? ""}>
                     <option value="">Todos</option>
@@ -112,31 +164,56 @@ export function PublicCollectionPage({
                 </label>
               ))}
 
-              <div className="public-filter-actions">
-                <button className="button primary" type="submit">
-                  Aplicar
-                </button>
-                {clearHref ? (
-                  <a className="button secondary" href={clearHref}>
-                    Limpiar
-                  </a>
-                ) : null}
+              <div className={styles.filterActions}>
+                <button type="submit">Aplicar filtros</button>
+                {clearHref ? <a href={clearHref}>Limpiar</a> : null}
               </div>
             </form>
           ) : null}
 
           {items.length > 0 ? (
-            <div className="public-card-grid">
+            <div className={styles.cardGrid}>
               {items.map((item) => (
-                <article key={item.href} className="public-card">
-                  {item.eyebrow ? <span className="kicker">{item.eyebrow}</span> : null}
-                  <h2 className="public-card-title">
-                    <a href={item.href}>{item.title}</a>
-                  </h2>
-                  <p className="public-card-copy">{item.summary}</p>
+                <article
+                  key={item.href}
+                  className={`${styles.card} ${styles.cardWithImage}`}
+                >
+                  <a
+                    className={`${styles.cardVisualTitle}${item.image ? "" : ` ${styles.cardVisualFallback}`}`}
+                    href={item.href}
+                  >
+                    {item.image ? (
+                      <img
+                        src={item.image.src}
+                        alt=""
+                        loading="lazy"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                    <span className={styles.cardVisualOverlay} aria-hidden="true" />
+                    <span className={styles.cardVisualCopy}>
+                      {item.eyebrow ? <span className={styles.cardKicker}>{item.eyebrow}</span> : null}
+                      <h3
+                        className={
+                          item.title.length > 124
+                            ? styles.cardTitleDense
+                            : item.title.length > 100
+                              ? styles.cardTitleLong
+                              : undefined
+                        }
+                      >
+                        {item.title}
+                      </h3>
+                    </span>
+                  </a>
+                  <p>{item.summary}</p>
+
+                  {item.publicationDate ? (
+                    <PublicationDateTime value={item.publicationDate} variant="card" />
+                  ) : null}
 
                   {item.meta && item.meta.length > 0 ? (
-                    <div className="public-meta-row">
+                    <div className={styles.cardMeta}>
                       {item.meta.map((metaItem) => (
                         typeof metaItem === "string" ? (
                           <span key={metaItem}>{metaItem}</span>
@@ -151,16 +228,16 @@ export function PublicCollectionPage({
                     </div>
                   ) : null}
 
-                  <a className="button secondary" href={item.href}>
-                    Abrir pieza
+                  <a className={styles.cardLink} href={item.href}>
+                    Leer entrada <ArrowRight size={15} aria-hidden="true" />
                   </a>
                 </article>
               ))}
             </div>
           ) : (
-            <article className="panel public-empty-state">
-              <span className="kicker">Sin publicaciones</span>
-              <h2>{emptyTitle}</h2>
+            <article className={styles.emptyState}>
+              <span>Archivo en preparación</span>
+              <h3>{emptyTitle}</h3>
               <p>{emptyCopy}</p>
             </article>
           )}

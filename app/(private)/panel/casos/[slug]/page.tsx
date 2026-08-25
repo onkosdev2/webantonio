@@ -32,6 +32,10 @@ export default async function PanelEditarCasoPage({
         submitLabel="Actualizar caso"
         initialValues={clinicalCase}
         enableAiActions
+        caseSlug={clinicalCase.slug}
+        publicHref={`/casos-clinicos/${clinicalCase.slug}`}
+        mediaAssets={clinicalCase.mediaAssets}
+        visualPlan={clinicalCase.visualPlan}
       />
     </AdminShell>
   );

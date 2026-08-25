@@ -17,11 +17,40 @@ export const createDraftArgsSchema = z.object({
   summary: z.string().min(20),
   body: z.string().min(50),
   source: z.string().default("mcp"),
+  sourceUrl: z.string().url().optional(),
   tags: z.array(z.string()).default([]),
   status: z.enum(["draft", "pending_review"]).default("draft"),
   tumorType: z.string().optional(),
   stage: z.string().optional(),
   biomarkers: z.array(z.string()).default([])
+}).superRefine((data, context) => {
+  if (data.type !== "news_item") return;
+
+  if (!data.source.trim() || data.source === "mcp") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["source"],
+      message: "Las noticias requieren el nombre real de la fuente."
+    });
+  }
+
+  if (!data.sourceUrl) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["sourceUrl"],
+      message: "Las noticias requieren la URL original de la fuente."
+    });
+    return;
+  }
+
+  const protocol = new URL(data.sourceUrl).protocol;
+  if (protocol !== "http:" && protocol !== "https:") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["sourceUrl"],
+      message: "La fuente debe usar una URL HTTP o HTTPS."
+    });
+  }
 });
 
 export const queueArgsSchema = z.object({
@@ -60,6 +89,7 @@ function normalizeResult(item: {
   summary: string;
   status: ContentStatus;
   source: string | null;
+  sourceUrl?: string | null;
   oncologyData?: {
     tumorType: string | null;
     stage: string | null;
@@ -73,6 +103,7 @@ function normalizeResult(item: {
     summary: item.summary,
     status: item.status,
     source: item.source ?? "",
+    sourceUrl: item.sourceUrl ?? "",
     tumorType: item.oncologyData?.tumorType ?? "",
     stage: item.oncologyData?.stage ?? "",
     biomarkers: Array.isArray(item.oncologyData?.biomarkers)
@@ -111,6 +142,11 @@ async function searchContentByType(
 
 export async function createDraftViaMcp(input: CreateDraftArgs) {
   const args = createDraftArgsSchema.parse(input);
+  if (args.type === "clinical_case") {
+    throw new Error(
+      "Para casos clínicos usa create_clinical_case_draft: exige anonimización confirmada y mantiene la publicación como un paso separado."
+    );
+  }
   const title = args.title.trim();
   const summary = args.summary.trim();
   const body = args.body.trim();
@@ -120,7 +156,7 @@ export async function createDraftViaMcp(input: CreateDraftArgs) {
     stage: args.stage ?? "",
     biomarkers: args.biomarkers,
     toxicities: [],
-    anonymized: true
+    anonymized: false
   };
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -139,6 +175,7 @@ export async function createDraftViaMcp(input: CreateDraftArgs) {
           summary,
           body,
           source: args.source,
+          sourceUrl: args.sourceUrl ?? null,
           author: "MCP draft tool",
           tags: args.tags,
           oncologyData: {

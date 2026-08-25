@@ -1,0 +1,54 @@
+.nav {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  min-height: 52px;
+  border-top: 1px solid rgba(255, 250, 240, 0.2);
+  background: rgba(5, 39, 36, 0.74);
+}
+
+.nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 0;
+  border-left: 1px solid rgba(255, 250, 240, 0.2);
+  color: rgba(255, 250, 240, 0.84);
+  font-family: var(--font-ui), "Segoe UI", sans-serif;
+  font-size: var(--type-nav);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.nav a:first-child {
+  border-left: 0;
+}
+
+.nav a:hover,
+.nav a[aria-current="page"] {
+  background: rgba(214, 166, 84, 0.16);
+  color: #f0c777;
+}
+
+.nav a:focus-visible {
+  z-index: 1;
+  outline: 2px solid #f0c777;
+  outline-offset: -3px;
+}
+
+@media (max-width: 680px) {
+  .nav {
+    grid-template-columns: repeat(5, 130px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav a {
+    min-height: 52px;
+  }
+}

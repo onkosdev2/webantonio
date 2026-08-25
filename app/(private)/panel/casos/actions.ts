@@ -3,8 +3,17 @@
 import { ContentStatus, ContentType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { generateDraftWithGlm, refineDraftWithGlm } from "@/lib/ai/glm";
+import {
+  generateClinicalCaseWithOpenAi,
+  refineClinicalCaseWithOpenAi
+} from "@/lib/ai/openai-text";
+import {
+  assertCaseMayBeSentToAi,
+  buildCaseVisualPlan,
+  markVisualPlanStale
+} from "@/lib/ai/visual-pipeline/orchestrator";
 import { slugify, splitCommaSeparated } from "@/lib/content/cases";
 import {
   getFormText,
@@ -15,6 +24,10 @@ import {
   isUniqueConstraintError,
   resolveUniqueContentSlug
 } from "@/lib/content/slugs";
+import { emitClinicalCasePublication } from "@/lib/realtime/clinical-case-publications";
+
+const siteUrl = () =>
+  (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
 
 function getBoolean(formData: FormData, key: string) {
   return formData.get(key) === "on";
@@ -99,15 +112,18 @@ async function generateClinicalCaseDraft(
     .filter(Boolean)
     .join("\n");
 
-  return generateDraftWithGlm({
-    kind: "clinical_case",
-    focus: payload.tumorType || "oncologia",
-    topic: payload.title,
-    angle: payload.summary || "docente",
-    goal: "desarrollar un caso clínico publicable y estructurado",
-    tone: aiTone || "docente",
-    length: "amplia",
-    notes: [payload.body, metadataNotes].filter(Boolean).join("\n\n")
+  assertCaseMayBeSentToAi({
+    anonymized: payload.anonymized,
+    body: [payload.title, payload.summary, payload.body, metadataNotes]
+      .filter(Boolean)
+      .join("\n\n")
+  });
+  return generateClinicalCaseWithOpenAi({
+    title: payload.title,
+    summary: payload.summary,
+    body: payload.body,
+    metadata: metadataNotes,
+    tone: aiTone || "docente"
   });
 }
 
@@ -123,6 +139,8 @@ function revalidateClinicalCasePaths(previousSlug: string, nextSlug: string) {
 }
 
 export async function createClinicalCaseAction(formData: FormData) {
+  const user = await requireAdminSession();
+
   const payload = buildPayload(formData);
   let created;
   const aiIntent = getFormText(formData, "intent");
@@ -162,7 +180,7 @@ export async function createClinicalCaseAction(formData: FormData) {
             ? Array.from(
                 new Set([
                   ...payload.tags,
-                  generated.generationMode === "glm" ? "ai_glm" : "ai_fallback"
+                  "ai_openai"
                 ])
               )
             : payload.tags,
@@ -194,7 +212,27 @@ export async function createClinicalCaseAction(formData: FormData) {
     throw new Error("No se pudo crear el caso clinico con un slug unico.");
   }
 
+  if (generated) {
+    await buildCaseVisualPlan(created.id);
+  }
+
   revalidateClinicalCasePaths(created.slug, created.slug);
+
+  if (created.status === ContentStatus.PUBLISHED && created.publishedAt) {
+    emitClinicalCasePublication({
+      slug: created.slug,
+      title: created.title,
+      summary: created.summary,
+      publishedAt: created.publishedAt.toISOString(),
+      href: `${siteUrl()}/casos-clinicos/${created.slug}`,
+      origin: {
+        type: "PANEL_USER",
+        label: "Equipo editorial",
+        description: `Publicado por ${user.name} desde el panel de ONKOS`
+      }
+    });
+  }
+
   redirect(`/panel/casos/${created.slug}`);
 }
 
@@ -202,10 +240,12 @@ export async function updateClinicalCaseAction(
   slug: string,
   formData: FormData
 ) {
+  const user = await requireAdminSession();
+
   const payload = buildPayload(formData);
   const current = await db.content.findUnique({
     where: { slug },
-    select: { id: true, publishedAt: true, tags: true }
+    select: { id: true, status: true, publishedAt: true, tags: true }
   });
 
   if (!current) {
@@ -215,8 +255,11 @@ export async function updateClinicalCaseAction(
   const aiOperation = getAiOperation(formData);
 
   if (aiOperation) {
-    const refined = await refineDraftWithGlm({
-      kind: "clinical_case",
+    assertCaseMayBeSentToAi({
+      anonymized: payload.anonymized,
+      body: [payload.title, payload.summary, payload.body].join("\n\n")
+    });
+    const refined = await refineClinicalCaseWithOpenAi({
       title: payload.title,
       summary: payload.summary,
       body: payload.body,
@@ -237,7 +280,7 @@ export async function updateClinicalCaseAction(
     const nextTags = Array.from(
       new Set([
         ...existingTags,
-        refined.generationMode === "glm" ? "ai_glm" : "ai_fallback"
+        "ai_openai"
       ])
     );
 
@@ -250,6 +293,8 @@ export async function updateClinicalCaseAction(
         tags: nextTags
       }
     });
+
+    await buildCaseVisualPlan(updatedWithAi.id, { force: true });
 
     revalidateClinicalCasePaths(slug, updatedWithAi.slug);
     redirect(`/panel/casos/${updatedWithAi.slug}`);
@@ -284,6 +329,19 @@ export async function updateClinicalCaseAction(
           status: publication.status,
           publishedAt: publication.publishedAt,
           tags: payload.tags,
+          ...(current.status !== ContentStatus.PUBLISHED && nextStatus === ContentStatus.PUBLISHED
+            ? {
+                importLogs: {
+                  create: {
+                    source: "panel:publish_clinical_case",
+                    payloadType: "clinical_case",
+                    payloadSummary: `Publicación desde el panel editorial: ${payload.title}`,
+                    state: "VALIDATED",
+                    notes: `Publicado por usuario del panel: ${user.name}`
+                  }
+                }
+              }
+            : {}),
           oncologyData: {
             upsert: {
               create: {
@@ -326,6 +384,24 @@ export async function updateClinicalCaseAction(
     throw new Error("No se pudo guardar el caso clinico con un slug unico.");
   }
 
+  await markVisualPlanStale(updated.id);
+
   revalidateClinicalCasePaths(slug, updated.slug);
+
+  if (current.status !== ContentStatus.PUBLISHED && updated.status === ContentStatus.PUBLISHED && updated.publishedAt) {
+    emitClinicalCasePublication({
+      slug: updated.slug,
+      title: updated.title,
+      summary: updated.summary,
+      publishedAt: updated.publishedAt.toISOString(),
+      href: `${siteUrl()}/casos-clinicos/${updated.slug}`,
+      origin: {
+        type: "PANEL_USER",
+        label: "Equipo editorial",
+        description: "Publicado por un usuario desde el panel de ONKOS"
+      }
+    });
+  }
+
   redirect(`/panel/casos/${updated.slug}`);
 }

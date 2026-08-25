@@ -3,6 +3,7 @@
 import { ContentType, ImportState } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { splitCommaSeparated } from "@/lib/content/cases";
 import { createDraftViaMcp } from "@/lib/mcp/server";
@@ -29,6 +30,8 @@ function mapPayloadTypeToDraftType(payloadType: string) {
 }
 
 export async function createImportAction(formData: FormData) {
+  await requireAdminSession();
+
   const channel = getText(formData, "channel") || "manual";
   const source = getText(formData, "source");
   const payloadType = getText(formData, "payloadType");

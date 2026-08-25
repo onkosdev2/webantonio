@@ -160,6 +160,7 @@ export async function ingestOncologyNews(options: IngestOptions = {}) {
       summary: generated.summary,
       body: `${generated.body}\n\nFuente original: ${item.link}`,
       source: item.sourceName,
+      sourceUrl: item.link,
       tags: [
         "news_ingest",
         generated.generationMode === "glm" ? "ai_glm" : "ai_fallback",

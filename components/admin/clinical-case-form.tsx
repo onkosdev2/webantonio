@@ -1,4 +1,11 @@
 import { ContentStatus } from "@prisma/client";
+import { AiWaitActions } from "@/components/admin/ai-wait-actions";
+import { CasePrivacyConfirmation } from "@/components/admin/case-privacy-confirmation";
+import {
+  ClinicalCaseEditor,
+  type CaseMediaAsset,
+  type CaseVisualPlan
+} from "@/components/admin/clinical-case-editor";
 
 type ClinicalCaseFormValues = {
   title: string;
@@ -27,6 +34,10 @@ type ClinicalCaseFormProps = {
   initialValues?: ClinicalCaseFormValues;
   enableAiGenerate?: boolean;
   enableAiActions?: boolean;
+  caseSlug?: string;
+  publicHref?: string;
+  mediaAssets?: CaseMediaAsset[];
+  visualPlan?: CaseVisualPlan | null;
 };
 
 const emptyValues: ClinicalCaseFormValues = {
@@ -45,7 +56,7 @@ const emptyValues: ClinicalCaseFormValues = {
   toxicities: [],
   evidenceLevel: "",
   reviewNotes: "",
-  anonymized: true
+  anonymized: false
 };
 
 export function ClinicalCaseForm({
@@ -55,7 +66,11 @@ export function ClinicalCaseForm({
   submitLabel,
   initialValues = emptyValues,
   enableAiGenerate = false,
-  enableAiActions = false
+  enableAiActions = false,
+  caseSlug,
+  publicHref,
+  mediaAssets = [],
+  visualPlan = null
 }: ClinicalCaseFormProps) {
   return (
     <section className="admin-panel admin-section-span admin-editor-panel">
@@ -68,6 +83,56 @@ export function ClinicalCaseForm({
       </div>
 
       <form action={action} className="case-form">
+        <div className="case-editor-commandbar" aria-label="Acciones de la entrada">
+          <div className="case-editor-navigation">
+            <a className="button secondary" href="/panel/casos">
+              Volver al listado
+            </a>
+            {publicHref ? (
+              <a
+                className="button secondary case-view-entry"
+                href={publicHref}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Ver entrada
+              </a>
+            ) : null}
+          </div>
+
+          <div className="case-editor-publish-actions">
+            <button
+              className="button secondary"
+              type="submit"
+              name="intent"
+              value="save_draft"
+            >
+              {submitLabel}
+            </button>
+            <button
+              className="button secondary"
+              type="submit"
+              name="intent"
+              value="send_review"
+            >
+              Enviar a revisión
+            </button>
+            <button
+              className="button primary"
+              type="submit"
+              name="intent"
+              value="publish"
+            >
+              Publicar
+            </button>
+          </div>
+        </div>
+
+        <AiWaitActions
+          enableAiGenerate={enableAiGenerate}
+          enableAiActions={enableAiActions}
+        />
+
         <div className="case-form-grid">
           <label className="case-field case-field-span-2">
             <span>Titulo</span>
@@ -99,10 +164,16 @@ export function ClinicalCaseForm({
             <textarea name="summary" rows={4} defaultValue={initialValues.summary} required />
           </label>
 
-          <label className="case-field case-field-span-2">
+          <div className="case-field case-field-span-2">
             <span>Cuerpo del caso</span>
-            <textarea name="body" rows={10} defaultValue={initialValues.body} required />
-          </label>
+            <ClinicalCaseEditor
+              name="body"
+              defaultValue={initialValues.body}
+              caseSlug={caseSlug}
+              initialAssets={mediaAssets}
+              initialVisualPlan={visualPlan}
+            />
+          </div>
 
           <label className="case-field">
             <span>Tipo de tumor</span>
@@ -170,104 +241,9 @@ export function ClinicalCaseForm({
             <textarea name="reviewNotes" rows={4} defaultValue={initialValues.reviewNotes} />
           </label>
 
-          <label className="case-checkbox">
-            <input
-              type="checkbox"
-              name="anonymized"
-              defaultChecked={initialValues.anonymized}
-            />
-            <span>Confirmar que el caso ha sido anonimizado antes de publicar</span>
-          </label>
+          <CasePrivacyConfirmation defaultChecked={initialValues.anonymized} />
         </div>
 
-        <div className="case-form-actions">
-          <a className="button secondary" href="/panel/casos">
-            Volver al listado
-          </a>
-          <div className="case-form-action-group">
-            {enableAiGenerate || enableAiActions ? (
-              <>
-                <select name="aiTone" defaultValue="docente" className="ai-tone-select">
-                  <option value="docente">tono docente</option>
-                  <option value="clinico">tono clínico</option>
-                  <option value="sobrio">tono sobrio</option>
-                  <option value="critico">tono crítico</option>
-                  <option value="divulgativo">tono divulgativo</option>
-                </select>
-                {enableAiGenerate ? (
-                  <button
-                    className="button secondary"
-                    type="submit"
-                    name="intent"
-                    value="ai_generate"
-                  >
-                    Generar con IA
-                  </button>
-                ) : null}
-              </>
-            ) : null}
-            {enableAiActions ? (
-              <>
-                <button
-                  className="button secondary"
-                  type="submit"
-                  name="intent"
-                  value="ai_regenerate"
-                >
-                  Regenerar
-                </button>
-                <button
-                  className="button secondary"
-                  type="submit"
-                  name="intent"
-                  value="ai_expand"
-                >
-                  Expandir
-                </button>
-                <button
-                  className="button secondary"
-                  type="submit"
-                  name="intent"
-                  value="ai_shorten"
-                >
-                  Acortar
-                </button>
-                <button
-                  className="button secondary"
-                  type="submit"
-                  name="intent"
-                  value="ai_retone"
-                >
-                  Cambiar tono
-                </button>
-              </>
-            ) : null}
-            <button
-              className="button secondary"
-              type="submit"
-              name="intent"
-              value="save_draft"
-            >
-              {submitLabel}
-            </button>
-            <button
-              className="button secondary"
-              type="submit"
-              name="intent"
-              value="send_review"
-            >
-              Enviar a revision
-            </button>
-            <button
-              className="button primary"
-              type="submit"
-              name="intent"
-              value="publish"
-            >
-              Publicar
-            </button>
-          </div>
-        </div>
       </form>
     </section>
   );

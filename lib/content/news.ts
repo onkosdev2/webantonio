@@ -16,7 +16,12 @@ export async function getNewsItems() {
       type: ContentType.NEWS_ITEM
     },
     include: {
-      oncologyData: true
+      oncologyData: true,
+      media: {
+        where: { isFeatured: true, mediaType: "image" },
+        orderBy: { createdAt: "desc" },
+        take: 1
+      }
     },
     orderBy: {
       updatedAt: "desc"
@@ -30,6 +35,14 @@ export async function getNewsItems() {
     summary: item.summary,
     status: item.status,
     source: item.source ?? "manual",
+    sourceUrl: item.sourceUrl ?? "",
+    featuredImage: item.media[0]
+      ? {
+          src: item.media[0].storagePath,
+          alt: item.media[0].altText || item.media[0].title,
+          origin: item.media[0].origin
+        }
+      : null,
     tags: toArray(item.tags),
     generationLabel: toArray(item.tags).includes("ai_glm")
       ? "GLM 5.1"
@@ -41,16 +54,22 @@ export async function getNewsItems() {
   }));
 }
 
-export async function getPublishedNewsItems() {
+export async function getPublishedNewsItems(options: { limit?: number } = {}) {
   const items = await db.content.findMany({
     where: {
       type: ContentType.NEWS_ITEM,
       status: ContentStatus.PUBLISHED
     },
     include: {
-      oncologyData: true
+      oncologyData: true,
+      media: {
+        where: { isFeatured: true, mediaType: "image" },
+        orderBy: { createdAt: "desc" },
+        take: 1
+      }
     },
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }]
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    take: options.limit
   });
 
   return items.map((item) => ({
@@ -59,6 +78,14 @@ export async function getPublishedNewsItems() {
     slug: item.slug,
     summary: item.summary,
     source: item.source ?? "manual",
+    sourceUrl: item.sourceUrl ?? "",
+    featuredImage: item.media[0]
+      ? {
+          src: item.media[0].storagePath,
+          alt: item.media[0].altText || item.media[0].title,
+          origin: item.media[0].origin
+        }
+      : null,
     tags: toArray(item.tags),
     tumorType: item.oncologyData?.tumorType ?? "",
     biomarkers: toArray(item.oncologyData?.biomarkers),
@@ -71,7 +98,8 @@ export async function getNewsItemBySlug(slug: string) {
   const item = await db.content.findUnique({
     where: { slug },
     include: {
-      oncologyData: true
+      oncologyData: true,
+      media: { orderBy: { createdAt: "asc" } }
     }
   });
 
@@ -87,6 +115,15 @@ export async function getNewsItemBySlug(slug: string) {
     body: item.body,
     status: item.status,
     source: item.source ?? "",
+    sourceUrl: item.sourceUrl ?? "",
+    media: item.media.map((asset) => ({
+      id: asset.id,
+      title: asset.title,
+      altText: asset.altText ?? "",
+      storagePath: asset.storagePath,
+      origin: asset.origin,
+      isFeatured: asset.isFeatured
+    })),
     tags: toArray(item.tags),
     tumorType: item.oncologyData?.tumorType ?? "",
     biomarkers: toArray(item.oncologyData?.biomarkers)
@@ -101,7 +138,12 @@ export async function getPublishedNewsItemBySlug(slug: string) {
       status: ContentStatus.PUBLISHED
     },
     include: {
-      oncologyData: true
+      oncologyData: true,
+      media: {
+        where: { isFeatured: true, mediaType: "image" },
+        orderBy: { createdAt: "desc" },
+        take: 1
+      }
     }
   });
 
@@ -116,6 +158,14 @@ export async function getPublishedNewsItemBySlug(slug: string) {
     summary: item.summary,
     body: item.body,
     source: item.source ?? "",
+    sourceUrl: item.sourceUrl ?? "",
+    featuredImage: item.media[0]
+      ? {
+          src: item.media[0].storagePath,
+          alt: item.media[0].altText || item.media[0].title,
+          origin: item.media[0].origin
+        }
+      : null,
     tags: toArray(item.tags),
     tumorType: item.oncologyData?.tumorType ?? "",
     biomarkers: toArray(item.oncologyData?.biomarkers),

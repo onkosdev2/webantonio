@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
 const allowedMimeTypes = new Map([
@@ -17,6 +17,20 @@ function getRequiredEnv(name: string) {
   }
 
   return value;
+}
+
+export function isAllowedPublicMediaUrl(value: string) {
+  if (value.startsWith("/")) {
+    return true;
+  }
+
+  const publicBaseUrl = process.env.R2_PUBLIC_BASE_URL?.replace(/\/$/, "");
+
+  if (!publicBaseUrl) {
+    return false;
+  }
+
+  return value.startsWith(`${publicBaseUrl}/`);
 }
 
 function getR2Client() {
@@ -94,4 +108,39 @@ export async function uploadGalleryFileToR2(file: File | null) {
     contentType: file.type,
     size: file.size
   };
+}
+
+export async function uploadGeneratedImageToR2(
+  body: Buffer,
+  filename: string,
+  contentType = "image/webp"
+) {
+  const bucket = getRequiredEnv("R2_BUCKET");
+  const publicBaseUrl = getRequiredEnv("R2_PUBLIC_BASE_URL").replace(/\/$/, "");
+  const extension = contentType === "image/png" ? "png" : contentType === "image/jpeg" ? "jpg" : "webp";
+  const key = [
+    "generated",
+    new Date().toISOString().slice(0, 10),
+    `${Date.now()}-${randomUUID()}-${normalizeFilename(filename)}.${extension}`
+  ].join("/");
+
+  await getR2Client().send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+    CacheControl: "public, max-age=31536000, immutable"
+  }));
+
+  return { key, url: `${publicBaseUrl}/${key}` };
+}
+
+export async function deleteR2ObjectByPublicUrl(url: string) {
+  const publicBaseUrl = getRequiredEnv("R2_PUBLIC_BASE_URL").replace(/\/$/, "");
+  if (!url.startsWith(`${publicBaseUrl}/`)) return;
+  const key = decodeURIComponent(url.slice(publicBaseUrl.length + 1));
+  await getR2Client().send(new DeleteObjectCommand({
+    Bucket: getRequiredEnv("R2_BUCKET"),
+    Key: key
+  }));
 }

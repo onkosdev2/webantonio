@@ -1,48 +1,56 @@
-# MCP Layer
+# Capa MCP de ONKOS
 
-Esta carpeta documenta la capa MCP activa y deja sitio para una expansión
-posterior a un transporte MCP dedicado si hiciera falta.
+El servidor MCP activo se expone en `POST /mcp` mediante Streamable HTTP y se
+implementa en `app/mcp/route.ts` y `lib/mcp/chatgpt-server.ts`.
 
-## Estado actual
+## Catálogo para ChatGPT
 
-La primera capa MCP funcional ya se apoya en `Prisma` y se expone mediante las
-APIs:
+Casos clínicos:
 
-- `GET /api/mcp/resources`
-- `GET /api/mcp/resource?uri=...`
-- `GET /api/mcp/tools`
-- `POST /api/mcp/tools`
+- `list_recent_clinical_cases`
+- `search_clinical_cases`
+- `get_clinical_case`
+- `create_clinical_case_draft`
+- `configure_case_images`
+- `generate_case_image`
+- `set_case_featured_image`
+- `publish_clinical_case`
 
-## Alcance actual
+Noticias:
 
-- exponer recursos del archivo editorial
-- permitir busqueda de casos, noticias, editoriales e investigacion
-- crear borradores desde agentes externos, incluida investigacion
-- mover contenido a cola de revision
-
-## Tools activas
-
-- `search_cases`
+- `list_recent_news`
 - `search_news`
-- `search_research`
-- `create_draft`
-- `queue_for_review`
+- `create_news_draft`
+- `find_reusable_news_images`
+- `attach_existing_news_image`
+- `generate_news_image`
+- `get_news_item`
+- `publish_news`
+- `publish_news_automated`
 
-## Siguiente capa posible
+La publicación interactiva exige `confirmation=PUBLICAR`. El método automático
+de noticias solo debe utilizarse dentro de una automatización recurrente que ya
+tenga autorización para publicar.
 
-- `suggest_related_content`
-- `draft_comment_reply`
-- transporte MCP dedicado fuera de `/api/mcp/*`
+## Acceso
 
-## Ejemplo
+En desarrollo, `/mcp` está habilitado localmente. ChatGPT accede a través de
+Secure MCP Tunnel. En producción se admite un Bearer token para clientes
+compatibles o `MCP_ALLOW_UNAUTHENTICATED=true` exclusivamente detrás de un
+túnel privado. La aplicación todavía no implementa OAuth.
 
-```json
-POST /api/mcp/tools
-{
-  "tool": "search_cases",
-  "args": {
-    "query": "EGFR",
-    "limit": 5
-  }
-}
-```
+Un `GET /mcp` sin sesión devuelve `405` deliberadamente; las operaciones MCP se
+envían por `POST`.
+
+## Capa administrativa anterior
+
+Los endpoints `/api/mcp/resources`, `/api/mcp/resource` y `/api/mcp/tools`
+continúan disponibles para la consola privada `/panel/mcp`. Requieren sesión de
+usuario y no sustituyen al servidor MCP conectado a ChatGPT.
+
+## Pruebas
+
+- `npm run test:mcp:news`: smoke test de las herramientas de noticias; crea y
+  elimina contenido temporal.
+- `npm run test:mcp:e2e`: flujo clínico completo; requiere
+  `MCP_E2E_CONFIRM=1` y puede consumir generación de imágenes.

@@ -1,5 +1,6 @@
 import { ContentStatus, ContentType } from "@prisma/client";
 import { db } from "@/lib/db";
+import { getEditorialQualityReview } from "@/lib/ai/visual-pipeline/presentation";
 
 type JsonArray = string[] | null;
 
@@ -63,7 +64,22 @@ export async function getPublishedClinicalCases() {
       status: ContentStatus.PUBLISHED
     },
     include: {
-      oncologyData: true
+      oncologyData: true,
+      media: {
+        where: {
+          mediaType: "image",
+          isFeatured: true
+        },
+        select: {
+          storagePath: true,
+          altText: true,
+          title: true
+        },
+        orderBy: {
+          createdAt: "desc"
+        },
+        take: 1
+      }
     },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }]
   });
@@ -77,6 +93,12 @@ export async function getPublishedClinicalCases() {
     tumorType: item.oncologyData?.tumorType ?? "",
     stage: item.oncologyData?.stage ?? "",
     biomarkers: toArray(item.oncologyData?.biomarkers as JsonArray),
+    featuredImage: item.media[0]
+      ? {
+          src: item.media[0].storagePath,
+          alt: item.media[0].altText || item.media[0].title || item.title
+        }
+      : null,
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   }));
@@ -86,7 +108,19 @@ export async function getClinicalCaseBySlug(slug: string) {
   const item = await db.content.findUnique({
     where: { slug },
     include: {
-      oncologyData: true
+      oncologyData: true,
+      media: {
+        where: { mediaType: "image" },
+        orderBy: { createdAt: "desc" }
+      },
+      visualPlans: {
+        where: { isCurrent: true },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        include: {
+          figures: { orderBy: { figureNumber: "asc" } }
+        }
+      }
     }
   });
 
@@ -111,7 +145,41 @@ export async function getClinicalCaseBySlug(slug: string) {
     toxicities: toArray(item.oncologyData?.toxicities as JsonArray),
     evidenceLevel: item.oncologyData?.evidenceLevel ?? "",
     reviewNotes: item.oncologyData?.reviewNotes ?? "",
-    anonymized: item.oncologyData?.anonymized ?? false
+    anonymized: item.oncologyData?.anonymized ?? false,
+    mediaAssets: item.media.map((asset) => ({
+      id: asset.id,
+      title: asset.title,
+      altText: asset.altText,
+      storagePath: asset.storagePath,
+      isFeatured: asset.isFeatured,
+      prompt: asset.prompt,
+      origin: asset.origin,
+      figureId: asset.figureId
+    })),
+    visualPlan: item.visualPlans[0]
+      ? {
+          id: item.visualPlans[0].id,
+          status: item.visualPlans[0].status,
+          currentStage: item.visualPlans[0].currentStage,
+          qualityScore: item.visualPlans[0].qualityScore,
+          error: item.visualPlans[0].error,
+          qualityReview: getEditorialQualityReview(item.visualPlans[0].sharedState),
+          figures: item.visualPlans[0].figures.map((figure) => ({
+            id: figure.id,
+            figureNumber: figure.figureNumber,
+            priority: figure.priority,
+            title: figure.title,
+            category: figure.category,
+            purpose: figure.purpose,
+            educationalMessage: figure.educationalMessage,
+            reason: figure.reason,
+            score: figure.adjustedScore,
+            optimizedPrompt: figure.optimizedPrompt,
+            status: figure.status,
+            isFeatured: figure.isFeatured
+          }))
+        }
+      : null
   };
 }
 
@@ -123,7 +191,11 @@ export async function getPublishedClinicalCaseBySlug(slug: string) {
       status: ContentStatus.PUBLISHED
     },
     include: {
-      oncologyData: true
+      oncologyData: true,
+      media: {
+        where: { isFeatured: true, mediaType: "image" },
+        take: 1
+      }
     }
   });
 
@@ -145,7 +217,14 @@ export async function getPublishedClinicalCaseBySlug(slug: string) {
     treatmentPlan: item.oncologyData?.treatmentPlan ?? "",
     response: item.oncologyData?.response ?? "",
     publishedAt: item.publishedAt,
-    updatedAt: item.updatedAt
+    updatedAt: item.updatedAt,
+    featuredImage: item.media[0]
+      ? {
+          src: item.media[0].storagePath,
+          alt: item.media[0].altText || item.media[0].title,
+          origin: item.media[0].origin
+        }
+      : null
   };
 }
 

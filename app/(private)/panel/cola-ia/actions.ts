@@ -3,6 +3,7 @@
 import { AiTaskKind, AiTaskState } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { generateDraftWithGlm } from "@/lib/ai/glm";
 import { createDraftViaMcp, queueDraftForReview } from "@/lib/mcp/server";
@@ -87,6 +88,8 @@ function buildEditorialPrompt({
 }
 
 export async function createAiTaskAction(formData: FormData) {
+  await requireAdminSession();
+
   const pieceType = parsePieceType(getText(formData, "pieceType"));
   const kind = resolveTaskKind(pieceType);
   const focus = getText(formData, "focus");

@@ -21,7 +21,7 @@ export default async function InvestigacionPage({
     href: `/investigacion/${item.slug}`,
     title: item.title,
     summary: item.summary,
-    kicker: "Investigacion",
+    kicker: "Investigación",
     type: "research" as const,
     tags: item.tags,
     source: item.source,
@@ -35,11 +35,11 @@ export default async function InvestigacionPage({
 
   return (
     <PublicCollectionPage
-      kicker="Investigacion"
-      title="Investigacion"
-      description="Lectura critica de evidencia clinica, biomarcadores, estudios y avances oncologicos seleccionados por utilidad practica."
-      signature="Evidencia, criterio clinico y mirada academica"
-      countLabel="piezas de investigacion publicadas"
+      kicker="Investigación"
+      title="Evidencia Oncológica"
+      description="Ensayos, biomarcadores y evidencia clínica leídos desde su utilidad, sus límites y su aplicación."
+      signature="Evidencia para decisiones clínicas"
+      countLabel="piezas de investigación publicadas"
       itemCount={filteredItems.length}
       searchAction="/investigacion"
       searchQuery={q}
@@ -56,7 +56,7 @@ export default async function InvestigacionPage({
         href: item.href,
         title: item.title,
         summary: item.summary,
-        eyebrow: item.source || "Investigacion",
+        eyebrow: item.source || "Investigación",
         meta: (item.meta ?? []).map((metaItem) =>
           typeof metaItem === "string"
             ? {

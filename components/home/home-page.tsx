@@ -1,227 +1,301 @@
-import { SiteHeader } from "@/components/layout/site-header";
-import { contentSections, platformHighlights } from "@/lib/content/site-config";
-import { getPublicHomeFeed } from "@/lib/content/public";
+/*
+ * THESIS: Una portada clínica compacta que se lee como la primera plana de una revista médica.
+ * OWN-WORLD: Jardín editorial, marfil cálido, verde profundo, oro contenido y grabados botánicos.
+ * STORY: Presentación, caso destacado, actualidad y dos recorridos de continuidad en un solo viewport.
+ * FIRST VIEWPORT: Hero fotográfico de proporción panorámica seguido por módulos editoriales densos.
+ * FORM: Clinical library folio · faithful mockup reconstruction · seed c322d667.
+ */
 
-const editorialSignals = [
-  "Casos con biomarcadores, toxicidades y decisiones terapeuticas",
-  "Radar oncologico continuo con borradores editoriales asistidos",
-  "Archivo MCP listo para conectar agentes, apps y asistentes"
+import Image from "next/image";
+import {
+  ArrowRight,
+  BookOpenText,
+  Compass,
+  Leaf,
+  NewspaperClipping,
+  Stethoscope
+} from "@phosphor-icons/react/dist/ssr";
+import { SiteHeader } from "@/components/layout/site-header";
+import {
+  ClinicalCasesLiveUpdates,
+  NewsLiveUpdates
+} from "@/components/editorial/clinical-cases-live-updates";
+import { getPublishedClinicalCases } from "@/lib/content/cases";
+import { getPublishedNewsItems } from "@/lib/content/news";
+import {
+  medicalWebPageJsonLd,
+  physicianJsonLd,
+  websiteJsonLd
+} from "@/lib/seo";
+import styles from "./home-redesign.module.css";
+
+const topics = [
+  { href: "/casos-clinicos", label: "Casos", icon: Stethoscope },
+  { href: "/noticias", label: "Actualidad", icon: NewspaperClipping },
+  { href: "/investigacion", label: "Evidencia", icon: BookOpenText },
+  {
+    href: "/orientacion-oncologica-remota",
+    label: "Orientación",
+    icon: Compass
+  }
 ] as const;
 
+function formatPublicationDate(value: Date) {
+  return new Intl.DateTimeFormat("es-PE", {
+    timeZone: "America/Lima",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(value);
+}
+
+function formatCompactPublicationDate(value: Date) {
+  return new Intl.DateTimeFormat("es-PE", {
+    timeZone: "America/Lima",
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(value);
+}
+
 export async function HomePage() {
-  const { counts, latestPublished } = await getPublicHomeFeed();
-  const luxuryStats = [
-    { value: String(counts.cases).padStart(2, "0"), label: "casos clinicos publicados" },
-    { value: String(counts.news).padStart(2, "0"), label: "noticias publicadas" },
-    {
-      value: String(counts.editorials).padStart(2, "0"),
-      label: "editoriales publicadas"
-    },
-    {
-      value: String(counts.research).padStart(2, "0"),
-      label: "investigacion publicada"
-    }
-  ] as const;
+  const [publishedCases, newsItems] = await Promise.all([
+    getPublishedClinicalCases().then((items) => items.slice(0, 3)),
+    getPublishedNewsItems({ limit: 3 })
+  ]);
+  const featuredCase = publishedCases[0];
+  const relatedCases = publishedCases.slice(1);
+  const jsonLd = [
+    physicianJsonLd,
+    websiteJsonLd(),
+    medicalWebPageJsonLd({
+      path: "/",
+      name: "Dr. Antonio Camargo, oncólogo clínico en Lima",
+      description:
+        "Casos clínicos, actualidad oncológica, investigación y orientación médica explicados con rigor y contexto."
+    })
+  ];
 
   return (
     <>
+      <ClinicalCasesLiveUpdates />
+      <NewsLiveUpdates />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteHeader />
 
-      <main className="page-chrome">
-        <section className="hero">
-          <div className="shell hero-grid">
-            <article className="panel hero-copy hero-stage">
-              <span className="eyebrow">Plataforma Editorial Oncologica Hibrida</span>
-              <p className="hero-lead-line">
-                Dr. Antonio Camargo, oncologia clinica, criterio editorial y
-                arquitectura MCP.
-              </p>
-              <h1>Una presencia digital de lujo para pensamiento clinico de alto nivel.</h1>
-              <p className="hero-description">
-                La web no se presenta como un blog medico convencional. Se
-                comporta como una revista clinica de autor: casos oncologicos,
-                noticias vigiladas, editoriales, reflexiones y un sistema
-                inteligente que produce, clasifica, conecta y conserva tu
-                archivo profesional.
-              </p>
+      <main className={styles.page}>
+        <section className={styles.hero} aria-labelledby="home-title">
+          <Image
+            className={styles.heroImage}
+            src="/home-hero-wide.png"
+            alt="Dr. Antonio Camargo en su biblioteca médica"
+            fill
+            priority
+            sizes="(max-width: 760px) 100vw, 1456px"
+          />
+          <div className={styles.heroOverlay} aria-hidden="true" />
+          <Image
+            className={styles.heroBotanical}
+            src="/botanical-branch-transparent.png"
+            alt=""
+            width={720}
+            height={410}
+            aria-hidden="true"
+          />
 
-              <div className="cta-row">
-                <a className="button primary" href="/casos-clinicos">
-                  Explorar archivo oncologico
-                </a>
-                <a className="button secondary" href="/sobre-mi">
-                  Perfil del Dr. Camargo
-                </a>
-              </div>
-
-              <div className="signal-strip">
-                {editorialSignals.map((signal) => (
-                  <span key={signal}>{signal}</span>
-                ))}
-              </div>
-
-              <div className="hero-art-frame">
-                <img
-                  className="hero-art"
-                  src="/hero-oncology-luxe.svg"
-                  alt="Ilustracion editorial abstracta para oncologia"
-                />
-              </div>
-            </article>
-
-            <aside className="hero-aside">
-              <section className="panel dossier-panel">
-                <div className="dossier-header">
-                  <span className="kicker">Edicion Fundacional</span>
-                  <span className="dossier-index">Vol. 01</span>
-                </div>
-
-                <h2 className="dossier-title">
-                  Archivo vivo para oncologia, docencia y criterio medico.
-                </h2>
-
-                <p className="card-copy">
-                  Casos estructurados, noticias filtradas por impacto clinico,
-                  comentario editorial y una capa MCP para conectar asistentes,
-                  redactores y automatizaciones externas.
-                </p>
-
-                <div className="stats-grid">
-                  {luxuryStats.map((item) => (
-                    <div key={item.label} className="stat-tile">
-                      <strong>{item.value}</strong>
-                      <span>{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="quote-panel">
-                <span className="quote-mark">“</span>
-                <p>
-                  Una plataforma de autor para explicar el cancer con precision,
-                  humanidad y una direccion visual a la altura del contenido.
-                </p>
-              </section>
-            </aside>
+          <div className={styles.heroCopy}>
+            <p className={styles.heroKicker}>Oncología clínica · Lima</p>
+            <h1 id="home-title">Criterio clínico para comprender y decidir mejor.</h1>
+            <p className={styles.heroText}>
+              Casos clínicos, evidencia rigurosa y reflexión editorial para
+              acompañar decisiones clínicas con claridad, humanidad y propósito.
+            </p>
+            <div className={styles.heroActions}>
+              <a className={styles.primaryButton} href="/casos-clinicos">
+                Leer casos clínicos
+              </a>
+              <a className={styles.secondaryLink} href="/sobre-mi">
+                Conocer al doctor <ArrowRight size={15} weight="regular" />
+              </a>
+            </div>
           </div>
+
+          <nav className={styles.topicRail} aria-label="Explorar por tema">
+            {topics.map(({ href, label, icon: Icon }) => (
+              <a key={href} href={href}>
+                <Icon size={18} weight="regular" aria-hidden="true" />
+                <span>{label}</span>
+              </a>
+            ))}
+          </nav>
         </section>
 
-        <section className="shell marquee-band">
-          <div>Casos clinicos</div>
-          <div>Noticias oncologicas</div>
-          <div>Editoriales</div>
-          <div>Reflexiones</div>
-          <div>Galeria clinica</div>
-          <div>Integraciones MCP</div>
-        </section>
+        <div className={styles.editorialBody}>
+          <section className={styles.featuredSection} aria-labelledby="featured-title">
+            <header className={styles.sectionTitle}>
+              <span aria-hidden="true" />
+              <h2 id="featured-title">Caso clínico destacado</h2>
+            </header>
 
-        <div className="shell grid">
-          <section className="section luxe-section">
-            <div className="section-heading">
-              <span className="eyebrow">Curaduria Editorial</span>
-              <h2>Canales que construyen una firma profesional reconocible.</h2>
-            </div>
+            <div className={styles.featuredGrid}>
+              {featuredCase ? (
+                <article className={styles.featuredCase}>
+                  <div className={styles.featuredImageWrap}>
+                    <img
+                      src={featuredCase.featuredImage?.src ?? "/editorial-cancer-cells.png"}
+                      alt={featuredCase.featuredImage?.alt ?? "Imagen editorial del caso clínico"}
+                      loading="eager"
+                    />
+                  </div>
 
-            <div className="cards-3 feature-grid">
-              {contentSections.map((section, index) => (
-                <article key={section.title} className="section-card feature-card">
-                  <span className="feature-index">0{index + 1}</span>
-                  <span className="kicker">{section.kicker}</span>
-                  <h3 className="card-title">{section.title}</h3>
-                  <p className="card-copy">{section.description}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="section split-showcase">
-            <article className="showcase-panel showcase-dark">
-              <span className="eyebrow">Direccion Visual</span>
-              <h2>Menos plantilla, mas revista clinica de autor.</h2>
-              <p className="section-intro">
-                Materiales suaves, contrastes profundos, acentos de bronce y
-                una composicion pensada para transmitir autoridad, delicadeza y
-                sofisticacion medica.
-              </p>
-            </article>
-
-            <article className="showcase-panel showcase-light">
-              <span className="kicker">Arquitectura Operativa</span>
-              <ul className="bullet-list luxe-list">
-                <li>Panel privado para borradores, revision y trazabilidad</li>
-                <li>IA para redactar, editar, relacionar y responder</li>
-                <li>API y MCP para conectar redactores y rastreadores externos</li>
-              </ul>
-            </article>
-          </section>
-
-          <section className="section luxe-section">
-            <div className="section-heading">
-              <span className="eyebrow">Sistema Hibrido</span>
-              <h2>Una plataforma que publica, coordina y conversa con otras herramientas.</h2>
-              <p className="section-intro">
-                El valor no esta solo en lo que se ve. Debajo de la capa
-                visual, la web queda preparada para operar como centro
-                editorial oncológico conectado.
-              </p>
-            </div>
-
-            <div className="cards-2 architecture-grid">
-              {platformHighlights.map((item) => (
-                <article key={item.title} className="section-card architecture-card">
-                  <span className="kicker">{item.kicker}</span>
-                  <h3 className="card-title">{item.title}</h3>
-                  <p className="card-copy">{item.description}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="section luxe-section">
-            <div className="section-heading">
-              <span className="eyebrow">Archivo Publicado</span>
-              <h2>Lo que ya está visible para el lector en la web pública.</h2>
-              <p className="section-intro">
-                La portada ya lee piezas publicadas reales desde la base de
-                datos. A partir de aquí, el sitio empieza a operar como
-                publicación y no solo como presentación.
-              </p>
-            </div>
-
-            {latestPublished.length > 0 ? (
-              <div className="public-card-grid">
-                {latestPublished.map((item) => (
-                  <article key={item.href} className="public-card">
-                    <span className="kicker">{item.kicker}</span>
-                    <h3 className="public-card-title">
-                      <a href={item.href}>{item.title}</a>
-                    </h3>
-                    <p className="public-card-copy">{item.summary}</p>
-                    <a className="button secondary" href={item.href}>
-                      Leer pieza
+                  <div className={styles.featuredCopy}>
+                    <time dateTime={(featuredCase.publishedAt ?? featuredCase.updatedAt).toISOString()}>
+                      Publicado el {formatPublicationDate(featuredCase.publishedAt ?? featuredCase.updatedAt)}
+                    </time>
+                    <h3>{featuredCase.title}</h3>
+                    <p>{featuredCase.summary}</p>
+                    <a href={`/casos-clinicos/${featuredCase.slug}`}>
+                      Leer caso completo <ArrowRight size={13} aria-hidden="true" />
                     </a>
+                  </div>
+
+                  <div className={styles.relatedCases}>
+                    {relatedCases.map((item, index) => (
+                      <article key={item.slug}>
+                        <div className={styles.relatedImage}>
+                          <img
+                            src={item.featuredImage?.src ?? (index === 0 ? "/editorial-ct-scan.png" : "/editorial-histology.png")}
+                            alt={item.featuredImage?.alt ?? "Imagen editorial del caso clínico"}
+                            loading="lazy"
+                          />
+                        </div>
+                        <div>
+                          <time dateTime={(item.publishedAt ?? item.updatedAt).toISOString()}>
+                            {formatCompactPublicationDate(item.publishedAt ?? item.updatedAt)}
+                          </time>
+                          <h4>{item.title}</h4>
+                          <a href={`/casos-clinicos/${item.slug}`}>
+                            Leer resumen <ArrowRight size={12} aria-hidden="true" />
+                          </a>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </article>
+              ) : (
+                <article className={styles.featuredEmpty}>
+                  <div>
+                    <span>Archivo clínico</span>
+                    <h3>Los próximos casos aparecerán aquí al publicarse.</h3>
+                    <p>El archivo todavía no tiene casos clínicos públicos.</p>
+                  </div>
+                  <a href="/casos-clinicos">
+                    Revisar el archivo <ArrowRight size={13} aria-hidden="true" />
+                  </a>
+                </article>
+              )}
+
+              <article className={styles.reflectionCard}>
+                <Image
+                  src="/botanical-branch-transparent.png"
+                  alt=""
+                  fill
+                  sizes="380px"
+                  aria-hidden="true"
+                />
+                <div className={styles.reflectionContent}>
+                  <div className={styles.reflectionMeta}>
+                    <span><Leaf size={16} /> Reflexión editorial</span>
+                    <span className={styles.sampleBadge}>Contenido de muestra</span>
+                  </div>
+                  <h3>El tiempo de la escucha en oncología</h3>
+                  <p>Reflexiones sobre el vínculo clínico, las decisiones compartidas y el cuidado que dignifica.</p>
+                  <a href="/reflexiones/el-tiempo-de-la-escucha-en-oncologia">
+                    Leer reflexión <ArrowRight size={13} />
+                  </a>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section
+            id="actualidad"
+            className={styles.newsStrip}
+            data-news-count={newsItems.length}
+            aria-labelledby="news-title"
+          >
+            <header>
+              <h2 id="news-title"><Leaf size={17} /> Actualidad en oncología</h2>
+              <span className={styles.latestBadge}>Últimas publicaciones</span>
+              <p>Selección editorial de novedades, guías y consensos relevantes.</p>
+            </header>
+            {newsItems.length > 0 ? (
+              newsItems.map((item) => {
+                const publicationDate = item.publishedAt ?? item.updatedAt;
+
+                return (
+                  <article key={item.slug}>
+                    <h3>
+                      <a href={`/noticias/${item.slug}`}>{item.title}</a>
+                    </h3>
+                    <p>
+                      <time dateTime={publicationDate.toISOString()}>
+                        {formatPublicationDate(publicationDate)}
+                      </time>
+                      {" · Actualidad"}
+                    </p>
                   </article>
-                ))}
-              </div>
+                );
+              })
             ) : (
-              <article className="panel public-empty-state">
-                <span className="kicker">Sin publicaciones</span>
-                <h2>Todavía no hay piezas públicas en portada.</h2>
-                <p>
-                  Cuando una noticia, editorial o caso cambie a estado
-                  PUBLISHED, aparecerá aquí automáticamente.
-                </p>
+              <article className={styles.newsEmpty}>
+                <h3>Las próximas noticias aparecerán aquí al publicarse.</h3>
+                <p>El archivo todavía no tiene noticias públicas.</p>
               </article>
             )}
+            <a href="/noticias">Ver más noticias <ArrowRight size={13} /></a>
           </section>
 
+          <section className={styles.bottomGrid} aria-label="Continuar explorando">
+            <article className={styles.infoPanel}>
+              <Image src="/botanical-branch-transparent.png" alt="" fill sizes="700px" aria-hidden="true" />
+              <div>
+                <h2><BookOpenText size={18} /> Evidencia que orienta</h2>
+                <p>Revisiones breves de estudios y guías clínicas con implicancias prácticas para la consulta diaria.</p>
+              </div>
+              <a href="/investigacion/como-leer-estudios-y-guias-oncologicas">
+                Explorar evidencia <ArrowRight size={13} />
+              </a>
+            </article>
+            <article className={styles.infoPanel}>
+              <Image src="/botanical-branch-transparent.png" alt="" fill sizes="700px" aria-hidden="true" />
+              <div>
+                <div className={styles.infoTitle}>
+                  <h2><Compass size={18} /> Orientación a distancia</h2>
+                  <span className={styles.sampleBadge}>Contenido de muestra</span>
+                </div>
+                <p>Acompañamiento profesional para pacientes y familias, donde y cuando lo necesiten.</p>
+              </div>
+              <a href="/orientacion-oncologica-remota">Conocer más <ArrowRight size={13} /></a>
+            </article>
+          </section>
+
+          <aside className={styles.disclaimer} aria-label="Aviso médico">
+            <strong>Aviso médico</strong>
+            <p>
+              La información de este sitio es educativa y no reemplaza una consulta médica personalizada,
+              un diagnóstico profesional ni una indicación terapéutica individual.
+            </p>
+          </aside>
         </div>
       </main>
 
-      <footer className="shell footer">
-        <span>Dr. Antonio Camargo</span>
-        <span>Oncologia, archivo clinico, noticias y pensamiento medico asistido por IA.</span>
+      <footer className={styles.footer}>
+        <span>Dr. Antonio Camargo · Oncología clínica en Lima</span>
+        <a href="/login">Acceso profesional</a>
       </footer>
     </>
   );

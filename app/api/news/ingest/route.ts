@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
+import { getApiUser } from "@/lib/auth/session";
 import { ingestOncologyNews } from "@/lib/news/ingest";
 
 export async function POST(request: Request) {
   try {
+    const user = await getApiUser();
+
+    if (!user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const url = new URL(request.url);
     const limitPerSource = Number(url.searchParams.get("limitPerSource") ?? "4");
     const maxItems = Number(url.searchParams.get("maxItems") ?? "12");

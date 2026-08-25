@@ -3,6 +3,7 @@
 import { ContentStatus, ContentType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { generateDraftWithGlm, refineDraftWithGlm } from "@/lib/ai/glm";
 import { ingestOncologyNews } from "@/lib/news/ingest";
@@ -16,6 +17,10 @@ import {
   isUniqueConstraintError,
   resolveUniqueContentSlug
 } from "@/lib/content/slugs";
+import { emitNewsPublication } from "@/lib/realtime/clinical-case-publications";
+
+const siteUrl = () =>
+  (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
 
 function buildPayload(formData: FormData) {
   const title = getFormText(formData, "title");
@@ -25,6 +30,7 @@ function buildPayload(formData: FormData) {
     title,
     slug: slugify(slugInput || title),
     source: getFormText(formData, "source"),
+    sourceUrl: getFormText(formData, "sourceUrl"),
     summary: getFormText(formData, "summary"),
     body: getFormText(formData, "body"),
     tumorType: getFormText(formData, "tumorType"),
@@ -49,6 +55,23 @@ function getAiOperation(formData: FormData) {
   return null;
 }
 
+function assertValidNewsSource(payload: ReturnType<typeof buildPayload>) {
+  if (!payload.source.trim()) {
+    throw new Error("El nombre de la fuente es obligatorio para crear una noticia.");
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(payload.sourceUrl);
+  } catch {
+    throw new Error("La URL de la fuente es obligatoria y debe ser válida.");
+  }
+
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    throw new Error("La URL de la fuente debe comenzar con http:// o https://.");
+  }
+}
+
 async function generateNewsDraft(payload: ReturnType<typeof buildPayload>, aiTone: string) {
   return generateDraftWithGlm({
     kind: "news_item",
@@ -58,7 +81,11 @@ async function generateNewsDraft(payload: ReturnType<typeof buildPayload>, aiTon
     goal: "desarrollar una noticia comentada publicable",
     tone: aiTone || "sobrio",
     length: "media",
-    notes: [payload.body, payload.source ? `Fuente base: ${payload.source}` : ""]
+    notes: [
+      payload.body,
+      payload.source ? `Fuente base: ${payload.source}` : "",
+      payload.sourceUrl ? `Enlace original: ${payload.sourceUrl}` : ""
+    ]
       .filter(Boolean)
       .join("\n\n")
   });
@@ -76,7 +103,10 @@ function revalidateNewsPaths(previousSlug: string, nextSlug: string) {
 }
 
 export async function createNewsItemAction(formData: FormData) {
+  const user = await requireAdminSession();
+
   const payload = buildPayload(formData);
+  assertValidNewsSource(payload);
   let created;
   const intent = getFormText(formData, "intent");
   const aiTone = getFormText(formData, "aiTone") || "sobrio";
@@ -102,6 +132,7 @@ export async function createNewsItemAction(formData: FormData) {
           summary: generated?.summary ?? payload.summary,
           body: generated?.body ?? payload.body,
           source: payload.source,
+          sourceUrl: payload.sourceUrl || null,
           author: "Dr. Antonio Camargo",
           tags: generated
             ? Array.from(
@@ -133,14 +164,33 @@ export async function createNewsItemAction(formData: FormData) {
   }
 
   revalidateNewsPaths(created.slug, created.slug);
+
+  if (created.status === ContentStatus.PUBLISHED && created.publishedAt) {
+    emitNewsPublication({
+      slug: created.slug,
+      title: created.title,
+      summary: created.summary,
+      publishedAt: created.publishedAt.toISOString(),
+      href: `${siteUrl()}/noticias/${created.slug}`,
+      origin: {
+        type: "PANEL_USER",
+        label: "Equipo editorial",
+        description: `Publicado por ${user.name} desde el panel de ONKOS`
+      }
+    });
+  }
+
   redirect(`/panel/noticias/${created.slug}`);
 }
 
 export async function updateNewsItemAction(slug: string, formData: FormData) {
+  const user = await requireAdminSession();
+
   const payload = buildPayload(formData);
+  assertValidNewsSource(payload);
   const current = await db.content.findUnique({
     where: { slug },
-    select: { id: true, publishedAt: true, tags: true }
+    select: { id: true, status: true, publishedAt: true, tags: true }
   });
 
   if (!current) {
@@ -213,6 +263,7 @@ export async function updateNewsItemAction(slug: string, formData: FormData) {
           summary: payload.summary,
           body: payload.body,
           source: payload.source,
+          sourceUrl: payload.sourceUrl || null,
           tags: payload.tags,
           oncologyData: {
             upsert: {
@@ -242,10 +293,28 @@ export async function updateNewsItemAction(slug: string, formData: FormData) {
   }
 
   revalidateNewsPaths(slug, updated.slug);
+
+  if (current.status !== ContentStatus.PUBLISHED && updated.status === ContentStatus.PUBLISHED && updated.publishedAt) {
+    emitNewsPublication({
+      slug: updated.slug,
+      title: updated.title,
+      summary: updated.summary,
+      publishedAt: updated.publishedAt.toISOString(),
+      href: `${siteUrl()}/noticias/${updated.slug}`,
+      origin: {
+        type: "PANEL_USER",
+        label: "Equipo editorial",
+        description: `Publicado por ${user.name} desde el panel de ONKOS`
+      }
+    });
+  }
+
   redirect(`/panel/noticias/${updated.slug}`);
 }
 
 export async function runNewsIngestionAction() {
+  await requireAdminSession();
+
   await ingestOncologyNews();
   revalidatePath("/panel");
   revalidatePath("/panel/noticias");

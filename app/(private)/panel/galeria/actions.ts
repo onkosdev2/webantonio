@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { generateGalleryMetadataWithGlm } from "@/lib/ai/glm";
-import { uploadGalleryFileToR2 } from "@/lib/storage/r2";
+import { isAllowedPublicMediaUrl, uploadGalleryFileToR2 } from "@/lib/storage/r2";
 
 function getText(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -26,6 +27,10 @@ async function buildGalleryPayload(formData: FormData) {
 
   if (!storagePath) {
     throw new Error("Sube un archivo o indica una ruta/URL para el activo visual.");
+  }
+
+  if (!uploadedFile && !isAllowedPublicMediaUrl(storagePath)) {
+    throw new Error("La URL del activo debe pertenecer al dominio público configurado de R2.");
   }
 
   return {
@@ -81,6 +86,8 @@ async function resolveLinkedContentId(slug: string) {
 }
 
 export async function createGalleryAssetAction(formData: FormData) {
+  await requireAdminSession();
+
   const intent = getText(formData, "intent");
   const basePayload = await buildGalleryPayload(formData);
   const payload = intent === "ai_enrich" ? await enrichGalleryPayload(basePayload) : basePayload;
@@ -103,6 +110,8 @@ export async function createGalleryAssetAction(formData: FormData) {
 }
 
 export async function updateGalleryAssetAction(id: string, formData: FormData) {
+  await requireAdminSession();
+
   const intent = getText(formData, "intent");
   const basePayload = await buildGalleryPayload(formData);
   const payload = intent === "ai_enrich" ? await enrichGalleryPayload(basePayload) : basePayload;

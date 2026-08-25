@@ -32,6 +32,10 @@ export type PublicArchiveItem = {
   tags?: string[];
   source?: string;
   meta?: string[];
+  image?: {
+    src: string;
+    alt: string;
+  } | null;
 };
 
 type PublicHomeItem = {
@@ -115,15 +119,15 @@ export function getArchiveFilterOptions(items: PublicArchiveItem[]) {
 export function getTypeLabel(type: PublicArchiveType) {
   switch (type) {
     case "clinical_case":
-      return "Caso clinico";
+      return "Caso clínico";
     case "news_item":
-      return "Noticia oncologica";
+      return "Noticia oncológica";
     case "editorial":
       return "Editorial";
     case "research":
-      return "Investigacion";
+      return "Investigación";
     case "reflection":
-      return "Reflexion";
+      return "Reflexión";
     case "story":
       return "Historia";
   }
@@ -185,7 +189,7 @@ export async function getPublicArchiveItems() {
     href: `/casos-clinicos/${item.slug}`,
     title: item.title,
     summary: item.summary,
-    kicker: "Caso clinico",
+    kicker: "Caso clínico",
     type: "clinical_case",
     publishedAt: item.publishedAt,
     tumorType: item.tumorType,
@@ -204,13 +208,14 @@ export async function getPublicArchiveItems() {
     href: `/noticias/${item.slug}`,
     title: item.title,
     summary: item.summary,
-    kicker: "Noticia oncologica",
+    kicker: "Noticia oncológica",
     type: "news_item",
     publishedAt: item.publishedAt,
     tumorType: item.tumorType,
     biomarkers: item.biomarkers,
     tags: item.tags,
     source: item.source,
+    image: item.featuredImage,
     meta: [
       item.source || "",
       item.tumorType || "",
@@ -236,7 +241,7 @@ export async function getPublicArchiveItems() {
     href: `/investigacion/${item.slug}`,
     title: item.title,
     summary: item.summary,
-    kicker: "Investigacion",
+    kicker: "Investigación",
     type: "research",
     publishedAt: item.publishedAt,
     tags: item.tags,
@@ -248,7 +253,7 @@ export async function getPublicArchiveItems() {
     href: `/reflexiones/${item.slug}`,
     title: item.title,
     summary: item.summary,
-    kicker: "Reflexion",
+    kicker: "Reflexión",
     type: "reflection",
     publishedAt: item.publishedAt,
     tags: item.tags,

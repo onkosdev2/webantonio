@@ -69,3 +69,38 @@ Rutas operativas:
   corromper `.next` en este entorno
 - La base local usa `SQLite`; el modelo está preparado para migrar luego a
   `PostgreSQL`
+
+## MCP para ChatGPT: casos clínicos
+
+El endpoint estándar es `http://localhost:3000/mcp`. Expone herramientas para
+buscar y revisar casos, crear borradores, configurar entre 3 y 5 figuras,
+generar cada imagen, definir la portada y publicar. La publicación nunca es un
+efecto secundario: exige una llamada separada con la confirmación `PUBLICAR`.
+
+Para noticias de Actualidad existe además `publish_news_automated`, reservado para
+automatizaciones recurrentes preautorizadas. Ejecuta crear, generar y asociar portada,
+y publicar en una sola llamada idempotente por URL de fuente.
+
+Flujo recomendado:
+
+1. Redactar el caso sin identificadores personales.
+2. Confirmar explícitamente que el texto está anonimizado.
+3. Crear el borrador y configurar las figuras, sus prompts y ubicaciones.
+4. Generar cada figura aprobada con `generate_case_image`.
+5. Revisar el resultado con `get_clinical_case` o mediante su `edit_url`.
+6. Publicar solo tras una orden explícita del usuario.
+
+Para inspeccionarlo localmente:
+
+```bash
+npx @modelcontextprotocol/inspector@latest
+```
+
+En el Inspector selecciona Streamable HTTP y usa `http://localhost:3000/mcp`.
+
+ChatGPT necesita una URL HTTPS accesible. Para mantener el servidor y la base de
+datos locales, expón `/mcp` mediante **Secure MCP Tunnel** y configura
+`MCP_ALLOW_UNAUTHENTICATED=true` únicamente dentro de ese perímetro privado.
+Después activa Developer mode en ChatGPT, crea una app MCP y registra la URL
+HTTPS entregada por el túnel. En un despliegue público usa OAuth 2.1: ChatGPT no
+puede solicitar una API key personalizada al usuario.

@@ -79,15 +79,20 @@ export function AdminShell({ children, title, subtitle }: AdminShellProps) {
       <main className="admin-main">
         <header className="admin-topbar">
           <div>
-            <span className="eyebrow">Zona Privada</span>
+            <span className="admin-context-label">Zona privada · Operación editorial</span>
             <h1>{title}</h1>
             <p>{subtitle}</p>
           </div>
 
           <div className="admin-topbar-actions">
             <a className="button secondary" href="/">
-              Ver sitio público
+              Ver página
             </a>
+            <form action="/logout" method="post">
+              <button className="button secondary" type="submit">
+                Cerrar sesión
+              </button>
+            </form>
             <a className="button primary" href="/panel/importaciones">
               Nueva importación
             </a>

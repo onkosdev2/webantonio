@@ -47,6 +47,48 @@ enum AiTaskState {
   APPLIED
 }
 
+enum VisualPlanStatus {
+  PENDING
+  ANALYZING
+  RETRIEVING
+  REASONING
+  PLANNING
+  PROMPTING
+  COMPLIANCE_REVIEW
+  QUALITY_REVIEW
+  READY
+  REQUIRES_REVIEW
+  FAILED
+  STALE
+}
+
+enum FigureStatus {
+  PLANNED
+  READY
+  GENERATING
+  GENERATED
+  FAILED
+  STALE
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  role               UserRole  @default(EDITOR)
+  passwordHash       String?
+  mustChangePassword Boolean   @default(true)
+  active             Boolean   @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
 model Content {
   id          String        @id @default(cuid())
   type        ContentType
@@ -56,6 +98,7 @@ model Content {
   summary     String
   body        String
   source      String?
+  sourceUrl   String?
   author      String?
   tags        Json          @default("[]")
   createdAt   DateTime      @default(now())
@@ -66,21 +109,22 @@ model Content {
   media        MediaAsset[]
   importLogs   ImportLog[]
   aiTasks      AiTask[]
+  visualPlans  CaseVisualPlan[]
 }
 
 model OncologyMetadata {
-  id              String  @id @default(cuid())
-  contentId       String  @unique
-  tumorType       String?
-  stage           String?
-  biomarkers      Json     @default("[]")
-  treatmentLine   String?
-  treatmentPlan   String?
-  response        String?
-  toxicities      Json     @default("[]")
-  evidenceLevel   String?
-  reviewNotes     String?
-  anonymized      Boolean @default(false)
+  id            String  @id @default(cuid())
+  contentId     String  @unique
+  tumorType     String?
+  stage         String?
+  biomarkers    Json    @default("[]")
+  treatmentLine String?
+  treatmentPlan String?
+  response      String?
+  toxicities    Json    @default("[]")
+  evidenceLevel String?
+  reviewNotes   String?
+  anonymized    Boolean @default(false)
 
   content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 }
@@ -93,9 +137,71 @@ model MediaAsset {
   storagePath String
   mediaType   String
   isSensitive Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  origin      String   @default("upload")
+  prompt      String?
+  model       String?
+  figureId    String?
   createdAt   DateTime @default(now())
 
-  content Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  content Content?    @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  figure  CaseFigure? @relation(fields: [figureId], references: [id], onDelete: SetNull)
+}
+
+model CaseVisualPlan {
+  id            String           @id @default(cuid())
+  contentId     String
+  schemaVersion String           @default("onkos.visual-pipeline.v2")
+  policyVersion String           @default("figure-policy.v1")
+  sourceHash    String
+  status        VisualPlanStatus @default(PENDING)
+  currentStage  String           @default("privacy_validation")
+  sharedState   Json
+  qualityScore  Int?
+  error         String?
+  model         String
+  isCurrent     Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  content Content      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  figures CaseFigure[]
+
+  @@index([contentId, isCurrent])
+}
+
+model CaseFigure {
+  id                     String       @id @default(cuid())
+  planId                 String
+  figureNumber           Int
+  priority               Int
+  title                  String
+  category               String
+  purpose                String
+  educationalMessage     String
+  reason                 String
+  score                  Int
+  adjustedScore          Int
+  scoreBreakdown         Json
+  supportedFacts         Json
+  supportedKnowledge     Json
+  recommendedVisualStyle String
+  estimatedDifficulty    String
+  draftPrompt            String?
+  optimizedPrompt        String?
+  placement              String       @default("end_of_article")
+  placementAnchor        String?
+  compliance             Json
+  status                 FigureStatus @default(PLANNED)
+  isFeatured             Boolean      @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  plan   CaseVisualPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  assets MediaAsset[]
+
+  @@unique([planId, figureNumber])
+  @@index([planId, status])
 }
 
 model ImportLog {

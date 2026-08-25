@@ -1,0 +1,46 @@
+.root {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--muted);
+  font-family: var(--font-ui), "Segoe UI", sans-serif;
+  font-size: var(--type-label);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.root svg {
+  flex: 0 0 auto;
+  color: var(--highlight);
+}
+
+.label {
+  font-weight: 400;
+}
+
+.root strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.separator {
+  color: var(--gold);
+}
+
+.card {
+  margin-top: 16px;
+}
+
+.article {
+  margin: -8px 0 22px;
+  font-size: var(--type-small);
+}
+
+@media (max-width: 440px) {
+  .card {
+    width: 100%;
+  }
+}

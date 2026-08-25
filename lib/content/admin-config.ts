@@ -9,5 +9,6 @@ export const adminNavigation = [
   { href: "/panel/galeria", label: "Galería clínica", shortLabel: "Galería" },
   { href: "/panel/importaciones", label: "Importaciones externas", shortLabel: "Integraciones" },
   { href: "/panel/cola-ia", label: "Cola de generación", shortLabel: "IA" },
-  { href: "/panel/mcp", label: "Consola MCP", shortLabel: "MCP" }
+  { href: "/panel/mcp", label: "Consola MCP", shortLabel: "MCP" },
+  { href: "/panel/usuarios", label: "Manejo de usuarios", shortLabel: "Usuarios" }
 ] as const;

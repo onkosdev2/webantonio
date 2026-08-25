@@ -90,7 +90,7 @@ export function AdminDashboard({
       <section className="admin-panel admin-section-span admin-hero-panel">
         <div className="admin-panel-heading">
           <div>
-            <span className="eyebrow">Estado Editorial</span>
+            <span className="admin-context-label">Estado editorial</span>
             <h2>Vista ejecutiva real del sistema</h2>
             <p>
               Este dashboard ya lee Prisma para mostrar producción, revisión,

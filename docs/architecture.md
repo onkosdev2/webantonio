@@ -1,49 +1,70 @@
-# Arquitectura del Proyecto
+# Arquitectura del proyecto
 
-## Objetivo
+## Resumen
 
-Construir una plataforma editorial oncologica hibrida para el Dr. Antonio Camargo con:
+ONKOS es una aplicación editorial oncológica monolítica modular. El sitio
+público, el panel privado, las APIs y el servidor MCP se ejecutan en una misma
+aplicación Next.js 15 con React 19 y TypeScript.
 
-- web publica
-- panel editorial privado
-- capa de IA
-- integraciones externas
-- recursos y herramientas MCP
+```text
+Sitio público ──────────────┐
+Panel editorial ────────────┼─► Next.js ─► Prisma ─► SQLite
+ChatGPT ─► Secure MCP ──────┘       │
+                                    ├─► Cloudflare R2
+RSS ─► motor de noticias ───────────┤
+                                    └─► OpenAI / GLM / NVIDIA / ComfyUI
+```
 
-## Modulos principales
+## Módulos
 
-- `app/(public)`: colecciones públicas y detalle por slug.
-- `app/(private)/panel`: cabina editorial privada.
-- `app/api`: importación, ingestión de noticias y endpoints MCP.
-- `components`: piezas visuales reutilizables.
-- `lib/ai`: integración con GLM y lógica asistida.
-- `lib/content`: consultas, dashboard, publicación y flujos editoriales.
-- `lib/news`: fuentes RSS, ranking e ingestión continua.
-- `lib/mcp`: tools y recursos MCP conectados a Prisma.
-- `lib/validation`: esquemas de entrada para integraciones externas.
-- `prisma`: modelo de datos oncológico.
-- `mcp`: documentación y futura expansión del transporte MCP dedicado.
+- `app/(public)`: portada, colecciones y artículos publicados.
+- `app/(auth)`: inicio de sesión y creación de contraseña.
+- `app/(private)/panel`: administración editorial y usuarios.
+- `app/api`: importación, ingestión, medios, planes visuales y streams SSE.
+- `app/mcp`: transporte MCP Streamable HTTP para ChatGPT.
+- `components`: interfaz pública, editores y panel administrativo.
+- `lib/auth`: sesión firmada, roles y contraseñas con scrypt.
+- `lib/content`: consultas, estados y reglas editoriales.
+- `lib/ai`: texto, imágenes, privacidad y pipeline visual clínico.
+- `lib/mcp`: tools de casos clínicos y noticias conectadas a Prisma.
+- `lib/news`: fuentes RSS, ranking e ingestión.
+- `lib/realtime`: eventos de publicación para casos y noticias.
+- `lib/storage`: almacenamiento de medios en Cloudflare R2.
+- `prisma`: esquema relacional y seed local.
 
-## Estado implementado
+## Datos
 
-- portada y secciones públicas conectadas a contenido `PUBLISHED`
-- panel real para casos, noticias, editoriales, investigacion, reflexiones, historias y galería
-- dashboard privado con métricas vivas
-- generación de borradores con `GLM 5.1`
-- flujo editorial con `draft`, `pending_review`, `published` y `archived`
-- importaciones externas con trazabilidad
-- primera capa MCP viva vía `/api/mcp/*`
-- motor de noticias oncológicas por RSS + IA
+`Content` centraliza casos, noticias, editoriales, investigación, reflexiones e
+historias. Se relaciona con metadatos oncológicos, medios, importaciones, tareas
+de IA y planes visuales. Los planes visuales contienen figuras y cada figura
+puede asociarse con uno o más activos multimedia.
 
-## Pendientes estratégicos
+La base actual es SQLite. Los archivos se almacenan en Cloudflare R2 y la base
+conserva sus URL y metadatos. Para producción se recomienda PostgreSQL o un
+disco persistente.
 
-1. Añadir autenticación al panel.
-2. Programar el motor de noticias con cron o worker dedicado.
-3. Ampliar el rastreo con APIs externas además de RSS.
-4. Evolucionar la capa MCP a un transporte dedicado si hace falta.
+## Publicación y tiempo real
 
-## Nota de desarrollo local
+Los estados editoriales son `DRAFT`, `PENDING_REVIEW`, `SCHEDULED`, `PUBLISHED`
+y `ARCHIVED`. Cuando se publica un caso o una noticia, el servidor emite un
+evento SSE y la colección pública se actualiza. Los listeners actuales viven en
+memoria; varias réplicas requieren Redis o un bus de eventos compartido.
 
-La base actual usa `SQLite` para arranque local rapido. Cuando el sistema
-editorial y las colas pasen a despliegue estable, conviene migrar a
-`PostgreSQL` sin cambiar el modelo conceptual.
+## MCP
+
+`POST /mcp` expone 17 herramientas: ocho de casos clínicos y nueve de noticias.
+La publicación interactiva exige `confirmation=PUBLICAR`. La herramienta
+`publish_news_automated` está reservada para automatizaciones recurrentes
+preautorizadas y ejecuta el flujo idempotente de creación, portada y publicación.
+
+Los endpoints `/api/mcp/*` son una capa administrativa anterior protegida por la
+sesión del panel y no representan el catálogo del complemento de ChatGPT.
+
+## Producción
+
+- El servicio web ejecuta `npm run build` y `npm start` en el puerto 3000.
+- ChatGPT accede a `/mcp` mediante Secure MCP Tunnel o una futura capa OAuth.
+- R2 conserva los medios fuera del sistema de archivos de la aplicación.
+- La ingestión RSS necesita un cron externo o una automatización programada.
+- SQLite y los eventos en memoria deben sustituirse o persistirse antes de
+  escalar a varias instancias.

@@ -1,10 +1,12 @@
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
+import { ClinicalCasesLiveUpdates } from "@/components/editorial/clinical-cases-live-updates";
 import { getSearchParamValue } from "@/lib/content/public-query";
 import {
   filterPublicArchiveItems,
   getArchiveFilterOptions
 } from "@/lib/content/public";
 import { getPublishedClinicalCases } from "@/lib/content/cases";
+import { formatPublicPublicationDate } from "@/lib/content/public-dates";
 
 type CasosClinicosPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -22,10 +24,12 @@ export default async function CasosClinicosPage({
     href: `/casos-clinicos/${item.slug}`,
     title: item.title,
     summary: item.summary,
-    kicker: "Caso clinico",
+    kicker: "Caso clínico",
     type: "clinical_case" as const,
     tumorType: item.tumorType || "",
     biomarkers: item.biomarkers,
+    image: item.featuredImage,
+    publishedAt: item.publishedAt ?? item.updatedAt,
     tags: item.tags,
     meta: [
       item.stage ? `Estadio ${item.stage}` : "",
@@ -42,11 +46,13 @@ export default async function CasosClinicosPage({
   const filterOptions = getArchiveFilterOptions(baseItems);
 
   return (
-    <PublicCollectionPage
-      kicker="Archivo Clinico"
-      title="Casos Clinicos Oncologicos"
-      description="Repositorio estructurado para casos clinicos, decisiones terapeuticas, evolucion, toxicidades, biomarcadores y perlas docentes."
-      signature="Discusion clinica, docencia y trazabilidad oncologica"
+    <>
+      <ClinicalCasesLiveUpdates />
+      <PublicCollectionPage
+      kicker="Archivo clínico"
+      title="Casos Clínicos Oncológicos"
+      description="Casos organizados por diagnóstico, biomarcadores, tratamiento y evolución, con aprendizajes para la práctica clínica."
+      signature="Decisiones clínicas explicadas con contexto"
       countLabel="casos clínicos publicados"
       itemCount={filteredItems.length}
       searchAction="/casos-clinicos"
@@ -68,6 +74,7 @@ export default async function CasosClinicosPage({
       clearHref="/casos-clinicos"
       items={filteredItems.map((item) => {
         const meta: Array<string | { label: string; href?: string }> = [];
+        const publicationDate = formatPublicPublicationDate(item.publishedAt);
 
         if (!tumor && item.tumorType) {
           meta.push({
@@ -91,12 +98,15 @@ export default async function CasosClinicosPage({
           href: item.href,
           title: item.title,
           summary: item.summary,
-          eyebrow: item.tumorType || "Caso clinico",
+          eyebrow: item.tumorType || "Caso clínico",
+          image: item.image,
+          publicationDate,
           meta
         };
       })}
       emptyTitle="Todavía no hay casos clínicos publicados."
       emptyCopy="El archivo clínico privado ya funciona, pero esta sección pública solo mostrará los casos que marques como PUBLISHED."
-    />
+      />
+    </>
   );
 }

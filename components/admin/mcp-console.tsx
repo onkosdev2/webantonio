@@ -76,11 +76,26 @@ export function McpConsole() {
     <div className="admin-content-grid">
       <section className="admin-panel admin-section-span admin-hero-panel">
         <span className="eyebrow">Consola MCP</span>
-        <h2>Prueba recursos y tools sobre tu archivo oncológico sin salir del panel.</h2>
+        <h2>Conecta ChatGPT con el flujo editorial de casos clínicos.</h2>
         <p>
-          Esta consola ya dialoga con la capa MCP real de la plataforma y te
-          permite inspeccionar recursos, listar tools y ejecutar llamadas con
-          argumentos JSON.
+          El servidor MCP estándar está disponible en <strong>/mcp</strong>. Permite
+          crear borradores desde una conversación, planificar y colocar imágenes,
+          definir la portada y publicar solo después de una confirmación explícita.
+        </p>
+      </section>
+
+      <section className="admin-panel admin-section-span">
+        <div className="admin-panel-heading">
+          <div>
+            <span className="kicker">Conexión ChatGPT</span>
+            <h2>Endpoint MCP · /mcp</h2>
+          </div>
+        </div>
+        <p>
+          En local usa <code>http://localhost:3000/mcp</code> con MCP Inspector.
+          Para ChatGPT expón este endpoint con Secure MCP Tunnel y registra la URL
+          HTTPS resultante en Developer mode. La consola inferior conserva las
+          herramientas internas anteriores para diagnóstico.
         </p>
       </section>
 

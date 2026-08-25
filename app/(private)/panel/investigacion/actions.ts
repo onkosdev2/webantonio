@@ -3,6 +3,7 @@
 import { ContentStatus, ContentType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { generateDraftWithGlm, refineDraftWithGlm } from "@/lib/ai/glm";
 import { slugify, splitCommaSeparated } from "@/lib/content/cases";
@@ -74,6 +75,8 @@ function revalidateResearchPaths(previousSlug: string, nextSlug: string) {
 }
 
 export async function createResearchAction(formData: FormData) {
+  await requireAdminSession();
+
   const payload = buildPayload(formData);
   let created;
   const intent = getFormText(formData, "intent");
@@ -129,6 +132,8 @@ export async function createResearchAction(formData: FormData) {
 }
 
 export async function updateResearchAction(slug: string, formData: FormData) {
+  await requireAdminSession();
+
   const payload = buildPayload(formData);
   const current = await db.content.findUnique({
     where: { slug },
