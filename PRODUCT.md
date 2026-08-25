@@ -44,7 +44,7 @@ Un archivo oncologico de autor que reune en una sola experiencia casos clinicos 
 - Ingesta de noticias por RSS, generacion de borradores con IA, importaciones externas y trazabilidad.
 - Recursos y herramientas MCP conectados al archivo editorial.
 - SEO medico y contenido localizado para Lima, Peru, provincias y alcance remoto internacional.
-- La base local actual usa SQLite. La documentacion del proyecto contempla una migracion futura a PostgreSQL.
+- La base principal usa PostgreSQL. En desarrollo se ejecuta en Docker y la antigua SQLite se conserva únicamente como respaldo de migración.
 - Las credenciales de IA, almacenamiento R2 y otros servicios externos dependen de variables de entorno y pueden no estar configuradas en todos los entornos.
 - La forma concreta de recopilar, verificar, autorizar y publicar testimonios oncologicos permanece por definir; no deben fabricarse ni presentarse como evidencia real sin validacion.
 

@@ -8,7 +8,7 @@ aplicación Next.js 15 con React 19 y TypeScript.
 
 ```text
 Sitio público ──────────────┐
-Panel editorial ────────────┼─► Next.js ─► Prisma ─► SQLite
+Panel editorial ────────────┼─► Next.js ─► Prisma ─► PostgreSQL
 ChatGPT ─► Secure MCP ──────┘       │
                                     ├─► Cloudflare R2
 RSS ─► motor de noticias ───────────┤
@@ -39,9 +39,11 @@ historias. Se relaciona con metadatos oncológicos, medios, importaciones, tarea
 de IA y planes visuales. Los planes visuales contienen figuras y cada figura
 puede asociarse con uno o más activos multimedia.
 
-La base actual es SQLite. Los archivos se almacenan en Cloudflare R2 y la base
-conserva sus URL y metadatos. Para producción se recomienda PostgreSQL o un
-disco persistente.
+La base principal es PostgreSQL 16. En desarrollo corre dentro de Docker, se
+publica en `127.0.0.1:5433` y conserva sus datos en un volumen nombrado. La
+antigua SQLite permanece fuera del runtime como respaldo y fuente de migración.
+Los archivos se almacenan en Cloudflare R2 y PostgreSQL conserva sus URL y
+metadatos.
 
 ## Publicación y tiempo real
 
@@ -66,5 +68,7 @@ sesión del panel y no representan el catálogo del complemento de ChatGPT.
 - ChatGPT accede a `/mcp` mediante Secure MCP Tunnel o una futura capa OAuth.
 - R2 conserva los medios fuera del sistema de archivos de la aplicación.
 - La ingestión RSS necesita un cron externo o una automatización programada.
-- SQLite y los eventos en memoria deben sustituirse o persistirse antes de
-  escalar a varias instancias.
+- En producción debe utilizarse PostgreSQL administrado y configurar
+  `DATABASE_URL` con la credencial del proveedor.
+- Los eventos en memoria deben sustituirse por Redis o Pub/Sub antes de escalar
+  a varias instancias.

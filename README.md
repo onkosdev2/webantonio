@@ -55,20 +55,32 @@ Rutas operativas:
 ## Arranque local
 
 1. Copia `.env.example` a `.env`
-2. Ajusta `DATABASE_URL` si hace falta
-3. Ejecuta `npm install`
-4. Ejecuta `npm run db:generate`
-5. Ejecuta `npm run db:push`
+2. Ejecuta `npm install`
+3. Inicia PostgreSQL con `npm run db:postgres:up`
+4. Ejecuta `npx prisma migrate deploy`
+5. Ejecuta `npm run db:generate`
 6. Opcional: `npm run db:seed`
 7. Levanta la app con `npm run dev`
+
+PostgreSQL se publica localmente en `127.0.0.1:5433` porque el puerto estándar
+5432 puede estar ocupado por otros proyectos. Los datos permanecen en el volumen
+Docker `webantonio_postgres_data`.
+
+Para migrar una instalación histórica de SQLite, conserva la base indicada por
+`SQLITE_SOURCE_URL` y ejecuta una sola vez:
+
+```bash
+npm run db:migrate:sqlite-to-postgres
+npm run db:verify:migration
+```
 
 ## Notas de desarrollo
 
 - Para validar cambios de tipado: `npx tsc --noEmit`
 - Evita mezclar `next build` con un `next dev` ya levantado, porque puede
   corromper `.next` en este entorno
-- La base local usa `SQLite`; el modelo está preparado para migrar luego a
-  `PostgreSQL`
+- La base principal local usa PostgreSQL 16 dentro de Docker
+- La antigua SQLite se conserva únicamente como respaldo y fuente de migración
 
 ## MCP para ChatGPT: casos clínicos
 
