@@ -1,5 +1,8 @@
 # Dr. Antonio Camargo | Plataforma Editorial Oncologica
 
+Repositorio oficial: [nelsononkos78/webantonio](https://github.com/nelsononkos78/webantonio).
+Cuenta propietaria: `nelsononkos78`. Rama principal: `main`.
+
 Plataforma editorial oncológica híbrida con `Next.js`, `Prisma`, `IA` y capa
 `MCP`, pensada para producir, revisar y publicar:
 
