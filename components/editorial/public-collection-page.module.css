@@ -396,36 +396,75 @@
   line-height: 1.65;
 }
 
+.cardFooter {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
 .cardMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 18px;
+  align-items: flex-start;
+  gap: 7px;
 }
 
 .cardMeta > * {
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: #e6ece7;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 9px;
+  border: 1px solid rgba(13, 74, 69, 0.1);
+  border-radius: 8px;
+  background: rgba(13, 74, 69, 0.06);
   color: #3e5b55;
   font-family: var(--font-ui), "Segoe UI", sans-serif;
   font-size: var(--type-label);
-  line-height: 1.35;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.cardMeta a {
+  transition: border-color 180ms ease-out, background-color 180ms ease-out, color 180ms ease-out;
+}
+
+.cardMeta a:hover {
+  border-color: rgba(13, 74, 69, 0.24);
+  background: rgba(13, 74, 69, 0.1);
+  color: #0d4a45;
+}
+
+.cardMeta a:focus-visible {
+  outline: 2px solid #c6a56f;
+  outline-offset: 2px;
 }
 
 .cardLink {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   min-height: 42px;
-  margin-top: auto;
-  padding-top: 20px;
+  margin-top: 12px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(154, 108, 38, 0.22);
   color: #0d4a45;
   font-family: var(--font-ui), "Segoe UI", sans-serif;
   font-size: var(--type-label);
   font-weight: 700;
   letter-spacing: 0.11em;
   text-transform: uppercase;
+}
+
+.cardLink svg {
+  transition: transform 180ms ease-out;
+}
+
+.cardLink:hover svg {
+  transform: translateX(3px);
+}
+
+.cardLink:focus-visible {
+  outline: 2px solid #c6a56f;
+  outline-offset: 4px;
 }
 
 .emptyState {

@@ -82,7 +82,7 @@ export default async function NoticiasPage({ searchParams }: NoticiasPageProps) 
           });
         }
 
-        for (const metaItem of item.meta?.slice(1) ?? []) {
+        for (const metaItem of item.meta?.slice(2) ?? []) {
           if (metaItem.startsWith("Biomarcadores: ") && item.biomarkers?.[0]) {
             meta.push({
               label: metaItem,

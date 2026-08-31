@@ -212,25 +212,28 @@ export function PublicCollectionPage({
                     <PublicationDateTime value={item.publicationDate} variant="card" />
                   ) : null}
 
-                  {item.meta && item.meta.length > 0 ? (
-                    <div className={styles.cardMeta}>
-                      {item.meta.map((metaItem) => (
-                        typeof metaItem === "string" ? (
-                          <span key={metaItem}>{metaItem}</span>
-                        ) : metaItem.href ? (
-                          <a key={`${metaItem.label}-${metaItem.href}`} href={metaItem.href}>
-                            {metaItem.label}
-                          </a>
-                        ) : (
-                          <span key={metaItem.label}>{metaItem.label}</span>
-                        )
-                      ))}
-                    </div>
-                  ) : null}
+                  <footer className={styles.cardFooter}>
+                    {item.meta && item.meta.length > 0 ? (
+                      <div className={styles.cardMeta} aria-label="Temas asociados">
+                        {item.meta.map((metaItem) => (
+                          typeof metaItem === "string" ? (
+                            <span key={metaItem}>{metaItem}</span>
+                          ) : metaItem.href ? (
+                            <a key={`${metaItem.label}-${metaItem.href}`} href={metaItem.href}>
+                              {metaItem.label}
+                            </a>
+                          ) : (
+                            <span key={metaItem.label}>{metaItem.label}</span>
+                          )
+                        ))}
+                      </div>
+                    ) : null}
 
-                  <a className={styles.cardLink} href={item.href}>
-                    Leer entrada <ArrowRight size={15} aria-hidden="true" />
-                  </a>
+                    <a className={styles.cardLink} href={item.href}>
+                      <span>Leer entrada</span>
+                      <ArrowRight size={15} aria-hidden="true" />
+                    </a>
+                  </footer>
                 </article>
               ))}
             </div>

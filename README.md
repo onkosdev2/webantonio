@@ -76,6 +76,9 @@ npm run db:verify:migration
 
 ## Notas de desarrollo
 
+El plan de producción está en [Render + Supabase](docs/DEPLOY_RENDER.md): incluye
+migración de datos, R2, variables de entorno y requisitos de autenticación MCP.
+
 - Para validar cambios de tipado: `npx tsc --noEmit`
 - Evita mezclar `next build` con un `next dev` ya levantado, porque puede
   corromper `.next` en este entorno

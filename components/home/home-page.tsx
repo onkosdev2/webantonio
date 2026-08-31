@@ -231,6 +231,9 @@ export async function HomePage() {
               <h2 id="news-title"><Leaf size={17} /> Actualidad en oncología</h2>
               <span className={styles.latestBadge}>Últimas publicaciones</span>
               <p>Selección editorial de novedades, guías y consensos relevantes.</p>
+              <a className={styles.newsArchiveLink} href="/noticias">
+                Ver más noticias <ArrowRight size={13} aria-hidden="true" />
+              </a>
             </header>
             {newsItems.length > 0 ? (
               newsItems.map((item) => {
@@ -238,15 +241,26 @@ export async function HomePage() {
 
                 return (
                   <article key={item.slug}>
-                    <h3>
-                      <a href={`/noticias/${item.slug}`}>{item.title}</a>
-                    </h3>
-                    <p>
-                      <time dateTime={publicationDate.toISOString()}>
-                        {formatPublicationDate(publicationDate)}
-                      </time>
-                      {" · Actualidad"}
-                    </p>
+                    <a className={styles.newsItemLink} href={`/noticias/${item.slug}`}>
+                      <span className={styles.newsVisual} aria-hidden="true">
+                        {item.featuredImage ? (
+                          <img
+                            src={item.featuredImage.src}
+                            alt=""
+                            loading="lazy"
+                          />
+                        ) : null}
+                      </span>
+                      <span className={styles.newsCopy}>
+                        <h3>{item.title}</h3>
+                        <span className={styles.newsMeta}>
+                          <time dateTime={publicationDate.toISOString()}>
+                            {formatPublicationDate(publicationDate)}
+                          </time>
+                          {" · Actualidad"}
+                        </span>
+                      </span>
+                    </a>
                   </article>
                 );
               })
@@ -256,7 +270,6 @@ export async function HomePage() {
                 <p>El archivo todavía no tiene noticias públicas.</p>
               </article>
             )}
-            <a href="/noticias">Ver más noticias <ArrowRight size={13} /></a>
           </section>
 
           <section className={styles.bottomGrid} aria-label="Continuar explorando">
