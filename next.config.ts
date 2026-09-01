@@ -50,6 +50,12 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
+    ...(process.env.NODE_ENV === "production"
+      ? {
+          cpus: 1,
+          staticGenerationMaxConcurrency: 1
+        }
+      : {}),
     serverActions: {
       bodySizeLimit: "100mb"
     }

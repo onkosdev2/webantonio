@@ -123,6 +123,8 @@ reemplazarlas por credenciales nuevas y revocar las anteriores según correspond
 | `NODE_VERSION` | `22.22.2`, versión usada en la validación inicial |
 | `NODE_ENV` | `production` |
 | `DATABASE_URL` | Conexión PostgreSQL de Supabase con TLS y contraseña codificada en URL |
+| `PRISMA_CONNECTION_LIMIT` | `1` para mantener cada proceso dentro del límite del rol de Supabase |
+| `PRISMA_POOL_TIMEOUT_SECONDS` | `30` para esperar capacidad antes de fallar |
 | `AUTH_SECRET` | Secreto nuevo, aleatorio y estable entre despliegues |
 | `NEXT_PUBLIC_SITE_URL` | URL HTTPS real de Render; después, dominio definitivo |
 | `OPENAI_API_KEY` | Clave del proyecto IA de producción, con límites de gasto |
