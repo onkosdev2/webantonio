@@ -23,7 +23,33 @@ async function isAuthorized(request: Request) {
 }
 
 async function handle(request: Request) {
-  if (!(await isAuthorized(request))) {
+  const rpcRequest = request.method === "POST"
+    ? await request.clone().json().catch(() => null) as {
+        id?: string | number | null;
+        method?: string;
+        params?: { protocolVersion?: string };
+      } | null
+    : null;
+  const rpcMethod = rpcRequest?.method ?? null;
+
+  let authorized = false;
+  try {
+    authorized = await isAuthorized(request);
+  } catch (error) {
+    console.error("[mcp] authorization failed unexpectedly", {
+      httpMethod: request.method,
+      rpcMethod,
+      error: error instanceof Error ? error.name : "UnknownError"
+    });
+  }
+
+  console.info("[mcp] request", {
+    httpMethod: request.method,
+    rpcMethod,
+    authorized
+  });
+
+  if (!authorized) {
     return Response.json(
       { jsonrpc: "2.0", error: { code: -32001, message: "No autorizado" }, id: null },
       {
@@ -47,11 +73,11 @@ async function handle(request: Request) {
   // this app predates that request, so answer it statelessly and keep the
   // existing transport for all regular MCP operations.
   if (request.method === "POST") {
-    const body = await request.clone().json().catch(() => null) as { id?: string | number | null; method?: string } | null;
-    if (body?.method === "server/discover") {
+    if (rpcRequest?.method === "server/discover") {
+      console.info("[mcp] response", { rpcMethod, status: 200, transport: "discover" });
       return Response.json({
         jsonrpc: "2.0",
-        id: body.id ?? null,
+        id: rpcRequest.id ?? null,
         result: {
           resultType: "complete",
           supportedVersions: ["2025-11-25"],
@@ -65,8 +91,23 @@ async function handle(request: Request) {
 
   const server = createChatGptMcpServer();
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
-  await server.connect(transport);
-  return transport.handleRequest(request);
+  try {
+    await server.connect(transport);
+    const response = await transport.handleRequest(request);
+    console.info("[mcp] response", {
+      rpcMethod,
+      status: response.status,
+      contentType: response.headers.get("content-type")
+    });
+    return response;
+  } catch (error) {
+    console.error("[mcp] request failed", {
+      httpMethod: request.method,
+      rpcMethod,
+      error: error instanceof Error ? error.name : "UnknownError"
+    });
+    throw error;
+  }
 }
 
 export const POST = handle;
