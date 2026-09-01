@@ -95,13 +95,29 @@ export async function getPublishedNewsItems(options: { limit?: number } = {}) {
 }
 
 export async function getNewsItemBySlug(slug: string) {
-  const item = await db.content.findUnique({
+  let item = await db.content.findUnique({
     where: { slug },
     include: {
       oncologyData: true,
       media: { orderBy: { createdAt: "asc" } }
     }
   });
+
+  if (!item) {
+    const alias = await db.contentSlugAlias.findUnique({
+      where: { slug },
+      select: { contentId: true }
+    });
+    if (alias) {
+      item = await db.content.findUnique({
+        where: { id: alias.contentId },
+        include: {
+          oncologyData: true,
+          media: { orderBy: { createdAt: "asc" } }
+        }
+      });
+    }
+  }
 
   if (!item || item.type !== ContentType.NEWS_ITEM) {
     return null;
@@ -131,7 +147,7 @@ export async function getNewsItemBySlug(slug: string) {
 }
 
 export async function getPublishedNewsItemBySlug(slug: string) {
-  const item = await db.content.findFirst({
+  let item = await db.content.findFirst({
     where: {
       slug,
       type: ContentType.NEWS_ITEM,
@@ -146,6 +162,30 @@ export async function getPublishedNewsItemBySlug(slug: string) {
       }
     }
   });
+
+  if (!item) {
+    const alias = await db.contentSlugAlias.findUnique({
+      where: { slug },
+      select: { contentId: true }
+    });
+    if (alias) {
+      item = await db.content.findFirst({
+        where: {
+          id: alias.contentId,
+          type: ContentType.NEWS_ITEM,
+          status: ContentStatus.PUBLISHED
+        },
+        include: {
+          oncologyData: true,
+          media: {
+            where: { isFeatured: true, mediaType: "image" },
+            orderBy: { createdAt: "desc" },
+            take: 1
+          }
+        }
+      });
+    }
+  }
 
   if (!item) {
     return null;

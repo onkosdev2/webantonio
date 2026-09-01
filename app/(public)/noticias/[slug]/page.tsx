@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
 import { getPublishedNewsItemBySlug } from "@/lib/content/news";
 import { formatPublicPublicationDate } from "@/lib/content/public-dates";
@@ -40,14 +40,17 @@ export default async function NoticiaPublicaPage({
   params
 }: NoticiaPublicaPageProps) {
   const { slug } = await params;
-  const [item, archiveItems] = await Promise.all([
-    getPublishedNewsItemBySlug(slug),
-    getPublicArchiveItems()
-  ]);
+  const item = await getPublishedNewsItemBySlug(slug);
 
   if (!item) {
     notFound();
   }
+
+  if (slug !== item.slug) {
+    permanentRedirect(`/noticias/${item.slug}`);
+  }
+
+  const archiveItems = await getPublicArchiveItems();
 
   const relatedItems = getRelatedPublicItems(archiveItems, {
     href: `/noticias/${item.slug}`,

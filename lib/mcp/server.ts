@@ -3,7 +3,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import {
   isUniqueConstraintError,
-  resolveUniqueContentSlug
+  resolveUniqueContentSlug,
+  resolveUniqueNewsSlug
 } from "@/lib/content/slugs";
 
 const searchArgsSchema = z.object({
@@ -160,10 +161,13 @@ export async function createDraftViaMcp(input: CreateDraftArgs) {
   };
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
+    const resolveSlug = args.type === "news_item"
+      ? resolveUniqueNewsSlug
+      : resolveUniqueContentSlug;
     const slug =
       attempt === 0
-        ? await resolveUniqueContentSlug(title)
-        : await resolveUniqueContentSlug(`${title} ${attempt + 1}`);
+        ? await resolveSlug(title)
+        : await resolveSlug(`${title} ${attempt + 1}`);
 
     try {
       const created = await db.content.create({

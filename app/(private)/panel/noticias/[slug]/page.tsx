@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { NewsForm } from "@/components/admin/news-form";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getNewsItemBySlug } from "@/lib/content/news";
@@ -18,6 +18,10 @@ export default async function PanelEditarNoticiaPage({
 
   if (!newsItem) {
     notFound();
+  }
+
+  if (slug !== newsItem.slug) {
+    permanentRedirect(`/panel/noticias/${newsItem.slug}`);
   }
 
   return (

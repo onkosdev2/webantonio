@@ -7,7 +7,8 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { generateDraftWithGlm, refineDraftWithGlm } from "@/lib/ai/glm";
 import { ingestOncologyNews } from "@/lib/news/ingest";
-import { slugify, splitCommaSeparated } from "@/lib/content/cases";
+import { splitCommaSeparated } from "@/lib/content/cases";
+import { buildSeoNewsSlug } from "@/lib/content/news-seo";
 import {
   getFormText,
   resolveEditorialStatus,
@@ -15,7 +16,7 @@ import {
 } from "@/lib/content/publication";
 import {
   isUniqueConstraintError,
-  resolveUniqueContentSlug
+  resolveUniqueNewsSlug
 } from "@/lib/content/slugs";
 import { emitNewsPublication } from "@/lib/realtime/clinical-case-publications";
 
@@ -28,7 +29,7 @@ function buildPayload(formData: FormData) {
 
   return {
     title,
-    slug: slugify(slugInput || title),
+    slug: buildSeoNewsSlug(slugInput || title),
     source: getFormText(formData, "source"),
     sourceUrl: getFormText(formData, "sourceUrl"),
     summary: getFormText(formData, "summary"),
@@ -118,8 +119,8 @@ export async function createNewsItemAction(formData: FormData) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const uniqueSlug =
       attempt === 0
-        ? await resolveUniqueContentSlug(payload.slug)
-        : await resolveUniqueContentSlug(`${payload.slug}-${attempt + 1}`);
+        ? await resolveUniqueNewsSlug(payload.slug)
+        : await resolveUniqueNewsSlug(`${payload.slug}-${attempt + 1}`);
 
     try {
       created = await db.content.create({
@@ -246,39 +247,55 @@ export async function updateNewsItemAction(slug: string, formData: FormData) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const uniqueSlug =
       attempt === 0
-        ? await resolveUniqueContentSlug(payload.slug, current.id)
-        : await resolveUniqueContentSlug(
+        ? await resolveUniqueNewsSlug(payload.slug, current.id)
+        : await resolveUniqueNewsSlug(
             `${payload.slug}-${attempt + 1}`,
             current.id
           );
 
     try {
-      updated = await db.content.update({
-        where: { slug },
-        data: {
-          slug: uniqueSlug,
-          status: publication.status,
-          publishedAt: publication.publishedAt,
-          title: payload.title,
-          summary: payload.summary,
-          body: payload.body,
-          source: payload.source,
-          sourceUrl: payload.sourceUrl || null,
-          tags: payload.tags,
-          oncologyData: {
-            upsert: {
-              create: {
-                tumorType: payload.tumorType,
-                biomarkers: payload.biomarkers,
-                anonymized: true
-              },
-              update: {
-                tumorType: payload.tumorType,
-                biomarkers: payload.biomarkers
+      updated = await db.$transaction(async (tx) => {
+        await tx.contentSlugAlias.deleteMany({
+          where: { contentId: current.id, slug: uniqueSlug }
+        });
+
+        const saved = await tx.content.update({
+          where: { slug },
+          data: {
+            slug: uniqueSlug,
+            status: publication.status,
+            publishedAt: publication.publishedAt,
+            title: payload.title,
+            summary: payload.summary,
+            body: payload.body,
+            source: payload.source,
+            sourceUrl: payload.sourceUrl || null,
+            tags: payload.tags,
+            oncologyData: {
+              upsert: {
+                create: {
+                  tumorType: payload.tumorType,
+                  biomarkers: payload.biomarkers,
+                  anonymized: true
+                },
+                update: {
+                  tumorType: payload.tumorType,
+                  biomarkers: payload.biomarkers
+                }
               }
             }
           }
+        });
+
+        if (slug !== uniqueSlug) {
+          await tx.contentSlugAlias.upsert({
+            where: { slug },
+            create: { contentId: current.id, slug },
+            update: { contentId: current.id }
+          });
         }
+
+        return saved;
       });
       break;
     } catch (error) {

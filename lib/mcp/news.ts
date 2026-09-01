@@ -2,7 +2,7 @@ import { ContentStatus, ContentType, ImportState } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { generateCaseImages, type ImageAspectRatio, type ImageProvider } from "@/lib/ai/nvidia-images";
-import { resolveUniqueContentSlug } from "@/lib/content/slugs";
+import { resolveUniqueNewsSlug } from "@/lib/content/slugs";
 import { db } from "@/lib/db";
 import { emitNewsPublication } from "@/lib/realtime/clinical-case-publications";
 
@@ -188,7 +188,7 @@ export async function createNewsDraft(input: z.input<typeof createNewsDraftSchem
     throw new Error(`La fuente ya está asociada a la noticia "${duplicate.title}" (${duplicate.slug}).`);
   }
 
-  const slug = await resolveUniqueContentSlug(data.title);
+  const slug = await resolveUniqueNewsSlug(data.title);
   const created = await db.content.create({
     data: {
       type: ContentType.NEWS_ITEM,
@@ -418,28 +418,49 @@ async function publishValidatedNews(slug: string, auditSource: string, auditNote
     return normalizeNewsItem(content);
   }
 
-  const updated = await db.content.update({
-    where: { id: content.id },
-    data: {
-      status: ContentStatus.PUBLISHED,
-      publishedAt: content.publishedAt || new Date(),
-      importLogs: {
-        create: {
-          source: auditSource,
-          payloadType: "news_item",
-          payloadSummary: `Publicación completada desde MCP: ${content.title}`,
-          state: ImportState.VALIDATED,
-          notes: JSON.stringify({
-            sourceName: content.source,
-            sourceUrl: content.sourceUrl,
-            ...auditNotes
-          })
+  const optimizedSlug = await resolveUniqueNewsSlug(content.title, content.id);
+  const updated = await db.$transaction(async (tx) => {
+    await tx.contentSlugAlias.deleteMany({
+      where: { contentId: content.id, slug: optimizedSlug }
+    });
+
+    const published = await tx.content.update({
+      where: { id: content.id },
+      data: {
+        slug: optimizedSlug,
+        status: ContentStatus.PUBLISHED,
+        publishedAt: content.publishedAt || new Date(),
+        importLogs: {
+          create: {
+            source: auditSource,
+            payloadType: "news_item",
+            payloadSummary: `Publicación completada desde MCP: ${content.title}`,
+            state: ImportState.VALIDATED,
+            notes: JSON.stringify({
+              sourceName: content.source,
+              sourceUrl: content.sourceUrl,
+              previousSlug: content.slug,
+              optimizedSlug,
+              ...auditNotes
+            })
+          }
         }
-      }
-    },
-    include: { oncologyData: true, media: true }
+      },
+      include: { oncologyData: true, media: true }
+    });
+
+    if (content.slug !== optimizedSlug) {
+      await tx.contentSlugAlias.upsert({
+        where: { slug: content.slug },
+        create: { contentId: content.id, slug: content.slug },
+        update: { contentId: content.id }
+      });
+    }
+
+    return published;
   });
 
+  revalidateNews(content.slug);
   revalidateNews(updated.slug);
 
   if (updated.publishedAt) {

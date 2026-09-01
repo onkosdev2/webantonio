@@ -124,6 +124,18 @@ model Content {
   importLogs   ImportLog[]
   aiTasks      AiTask[]
   visualPlans  CaseVisualPlan[]
+  slugAliases  ContentSlugAlias[]
+}
+
+model ContentSlugAlias {
+  id        String   @id @default(cuid())
+  contentId String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
 }
 
 model OncologyMetadata {
