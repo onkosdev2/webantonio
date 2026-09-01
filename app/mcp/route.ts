@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const MODERN_PROTOCOL_VERSION = "2026-07-28";
+const SDK_PROTOCOL_VERSION = "2025-11-25";
 const SERVER_INFO = { name: "onkos-content-publisher", version: "2.1.0" };
 
 function modernRequestVersion(rpcRequest: {
@@ -159,12 +160,25 @@ async function handle(request: Request) {
     }
   }
 
+  const modern = modernRequestVersion(rpcRequest) === MODERN_PROTOCOL_VERSION ||
+    request.headers.get("mcp-protocol-version") === MODERN_PROTOCOL_VERSION;
+  let transportRequest = request;
+
+  // The installed SDK predates the 2026-07-28 protocol and rejects its HTTP
+  // header before dispatching otherwise compatible methods such as tools/list.
+  // Normalize only the request passed to the legacy transport, then translate
+  // its response back to the modern wire shape below.
+  if (modern) {
+    const headers = new Headers(request.headers);
+    headers.set("mcp-protocol-version", SDK_PROTOCOL_VERSION);
+    transportRequest = new Request(request, { headers });
+  }
+
   const server = createChatGptMcpServer();
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {
     await server.connect(transport);
-    const response = await transport.handleRequest(request);
-    const modern = modernRequestVersion(rpcRequest) === MODERN_PROTOCOL_VERSION;
+    const response = await transport.handleRequest(transportRequest);
     const compatibleResponse = await modernizeResponse(response, rpcMethod, modern);
     console.info("[mcp] response", {
       rpcMethod,
