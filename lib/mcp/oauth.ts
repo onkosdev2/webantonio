@@ -70,14 +70,6 @@ type RefreshToken = SignedPayload & {
   issuedAt: number;
 };
 
-declare global {
-  var __mcpOAuthCodes__: Map<string, AuthorizationCode> | undefined;
-}
-
-const authorizationCodes =
-  globalThis.__mcpOAuthCodes__ ?? new Map<string, AuthorizationCode>();
-globalThis.__mcpOAuthCodes__ = authorizationCodes;
-
 function oauthSecret() {
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
@@ -224,26 +216,32 @@ export function readAuthorizationRequestToken(token: string, userId: string) {
   return payload?.userId === userId ? payload : null;
 }
 
-function pruneAuthorizationCodes() {
-  const now = Date.now();
-  for (const [code, authorization] of authorizationCodes) {
-    if (authorization.expiresAt <= now) authorizationCodes.delete(code);
-  }
+function authorizationCodeId(code: string) {
+  return createHash("sha256").update(code).digest("hex");
 }
 
-export function issueAuthorizationCode(
+async function pruneAuthorizationCodes() {
+  await db.oAuthAuthorizationCode.deleteMany({
+    where: { expiresAt: { lte: new Date() } }
+  });
+}
+
+export async function issueAuthorizationCode(
   request: AuthorizationRequest
 ) {
-  pruneAuthorizationCodes();
+  await pruneAuthorizationCodes();
   const code = randomBytes(32).toString("base64url");
-  authorizationCodes.set(code, {
-    userId: request.userId,
-    clientId: request.clientId,
-    redirectUri: request.redirectUri,
-    codeChallenge: request.codeChallenge,
-    resource: request.resource,
-    scope: request.scope,
-    expiresAt: Date.now() + AUTHORIZATION_CODE_TTL_MS
+  await db.oAuthAuthorizationCode.create({
+    data: {
+      id: authorizationCodeId(code),
+      userId: request.userId,
+      clientId: request.clientId,
+      redirectUri: request.redirectUri,
+      codeChallenge: request.codeChallenge,
+      resource: request.resource,
+      scope: request.scope,
+      expiresAt: new Date(Date.now() + AUTHORIZATION_CODE_TTL_MS)
+    }
   });
   return code;
 }
@@ -256,18 +254,22 @@ function pkceMatches(verifier: string, challenge: string) {
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 }
 
-export function redeemAuthorizationCode(input: {
+export async function redeemAuthorizationCode(input: {
   code: string;
   clientId: string;
   redirectUri: string;
   codeVerifier: string;
   resource: string;
 }) {
-  pruneAuthorizationCodes();
-  const authorization = authorizationCodes.get(input.code);
+  await pruneAuthorizationCodes();
+  const id = authorizationCodeId(input.code);
+  const authorization = await db.oAuthAuthorizationCode.findUnique({
+    where: { id }
+  });
 
   if (
     !authorization ||
+    authorization.expiresAt.getTime() <= Date.now() ||
     authorization.clientId !== input.clientId ||
     authorization.redirectUri !== input.redirectUri ||
     authorization.resource !== input.resource ||
@@ -276,8 +278,15 @@ export function redeemAuthorizationCode(input: {
     return null;
   }
 
-  authorizationCodes.delete(input.code);
-  return authorization;
+  const consumed = await db.oAuthAuthorizationCode.deleteMany({ where: { id } });
+  if (consumed.count !== 1) return null;
+
+  return {
+    userId: authorization.userId,
+    clientId: authorization.clientId,
+    resource: authorization.resource,
+    scope: authorization.scope
+  };
 }
 
 export function issueAccessToken(authorization: TokenAuthorization) {

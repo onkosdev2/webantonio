@@ -10,6 +10,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function oauthError(error: string, description: string, status = 400) {
+  console.warn("[oauth/token] request rejected", { error, status });
   return Response.json(
     { error, error_description: description },
     { status, headers: { "Cache-Control": "no-store", Pragma: "no-cache" } }
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
 
   const authorization =
     grantType === "authorization_code"
-      ? redeemAuthorizationCode({
+      ? await redeemAuthorizationCode({
           code,
           clientId,
           redirectUri,
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
   }
 
   const token = issueAccessToken(authorization);
+  console.info("[oauth/token] token issued", { grantType });
   return Response.json(
     {
       access_token: token.accessToken,

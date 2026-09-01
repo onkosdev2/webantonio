@@ -89,6 +89,20 @@ model User {
   updatedAt          DateTime  @updatedAt
 }
 
+model OAuthAuthorizationCode {
+  id            String   @id
+  userId        String
+  clientId      String
+  redirectUri   String
+  codeChallenge String
+  resource      String
+  scope         String
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 model Content {
   id          String        @id @default(cuid())
   type        ContentType

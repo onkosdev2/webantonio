@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     }), 303);
   }
 
-  const code = issueAuthorizationCode(authorization);
+  const code = await issueAuthorizationCode(authorization);
   return Response.redirect(callbackUrl(authorization.redirectUri, {
     code,
     state: authorization.state,
