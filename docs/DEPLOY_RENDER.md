@@ -36,8 +36,9 @@ Render soporta Next.js como servicio Node. [Guía de Render](https://render.com/
   comenzar con una sola instancia. Antes de escalar, implementar distribución
   de eventos y sincronización de caché entre instancias; un reinicio pierde los
   eventos transitorios, no los registros de PostgreSQL.
-- El MCP actual no implementa OAuth: sus documentos `.well-known` anuncian
-  `127.0.0.1:3000` y una lista vacía de servidores de autorización.
+- El MCP implementa OAuth 2.1 con PKCE, registro dinámico de cliente y metadata
+  de recurso/autorización. En producción publica la URL configurada mediante
+  `NEXT_PUBLIC_SITE_URL` y conserva `MCP_API_TOKEN` para clientes técnicos.
 
 ## 1. Preparar Supabase y copiar los datos
 
@@ -145,17 +146,17 @@ variables con prefijo `NEXT_PUBLIC_` deben contener información pública.
 
 ## 4. MCP y actualización de ChatGPT
 
-Para conexión HTTPS directa, el destino será `https://<dominio>/mcp` y **no hace
-falta ejecutar un túnel**. Sin embargo, antes hay que implementar y comprobar:
+Para conexión HTTPS directa, el destino es `https://<dominio>/mcp` y **no hace
+falta ejecutar un túnel**. La implementación incluye:
 
-- OAuth compatible con MCP, autorización por herramienta y validación de tokens.
+- OAuth compatible con MCP, consentimiento mediante la sesión del panel y validación de tokens.
 - Metadata de recurso y autorización con URLs HTTPS reales, no localhost.
 - Scopes de lectura/escritura, challenge `WWW-Authenticate` y flujo de vinculación.
 - Que una petición sin credenciales no pueda leer borradores ni publicar.
 
 No configurar `MCP_ALLOW_UNAUTHENTICATED=true` en el servicio web público para
-facilitar la conexión. La protección actual por token estático no es una
-integración OAuth completa. [Autenticación MCP de OpenAI](https://developers.openai.com/plugins/build/auth).
+facilitar la conexión. `MCP_API_TOKEN` se conserva para clientes técnicos, pero
+ChatGPT debe usar el flujo OAuth. [Autenticación MCP de OpenAI](https://developers.openai.com/plugins/build/auth).
 
 La web y el panel pueden desplegarse primero con `/mcp` protegido y pendiente
 de vincular a ChatGPT. Mantener el túnel como alternativa exige un diseño privado
@@ -201,7 +202,7 @@ detener escrituras y reconciliar esos cambios antes del retorno para no perderlo
 1. Actualizar GitHub y disponer de un commit de referencia.
 2. Crear Supabase y ensayar la migración/validación en un destino aislado.
 3. Configurar Render, secretos y R2; validar web y panel.
-4. Implementar y verificar OAuth MCP de producción.
+4. Desplegar y verificar OAuth MCP de producción; conectar ChatGPT.
 5. Ejecutar el corte final de datos, dominio y conector; reanudar la automatización.
 
 Pendientes externos: verificar autorización de la integración GitHub de Render

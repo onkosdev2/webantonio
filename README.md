@@ -116,9 +116,9 @@ npx @modelcontextprotocol/inspector@latest
 
 En el Inspector selecciona Streamable HTTP y usa `http://localhost:3000/mcp`.
 
-ChatGPT necesita una URL HTTPS accesible. Para mantener el servidor y la base de
-datos locales, expón `/mcp` mediante **Secure MCP Tunnel** y configura
+ChatGPT necesita una URL HTTPS accesible. En producción registra
+`https://webantonio.onrender.com/mcp`; el servidor descubre OAuth 2.1, abre el
+login del panel y solicita consentimiento mediante PKCE. Para mantener un
+servidor local privado también puede usarse **Secure MCP Tunnel** y configurar
 `MCP_ALLOW_UNAUTHENTICATED=true` únicamente dentro de ese perímetro privado.
-Después activa Developer mode en ChatGPT, crea una app MCP y registra la URL
-HTTPS entregada por el túnel. En un despliegue público usa OAuth 2.1: ChatGPT no
-puede solicitar una API key personalizada al usuario.
+Nunca habilites esa variable en el servicio público.

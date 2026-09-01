@@ -534,7 +534,7 @@ La confirmación `anonymizedConfirmed: true` debe corresponder a una revisión r
 
 ### Autenticación actual
 
-En desarrollo local, `/mcp` acepta solicitudes sin autenticación de aplicación. El acceso desde ChatGPT se limita mediante Secure MCP Tunnel. En producción, el endpoint requiere `MCP_API_TOKEN` salvo que se habilite deliberadamente `MCP_ALLOW_UNAUTHENTICATED=true` detrás de un túnel privado.
+En desarrollo local, `/mcp` acepta solicitudes sin autenticación de aplicación. El acceso local desde ChatGPT puede limitarse mediante Secure MCP Tunnel. En producción, el endpoint implementa OAuth 2.1 con PKCE y reutiliza la sesión del panel para mostrar consentimiento. También acepta `MCP_API_TOKEN` para clientes técnicos compatibles. `MCP_ALLOW_UNAUTHENTICATED=true` debe usarse únicamente detrás de un túnel privado, nunca en la URL pública.
 
 No incluyas claves de OpenAI, NVIDIA, túnel o almacenamiento en conversaciones, capturas ni este documento.
 
@@ -551,7 +551,6 @@ La versión actual no expone acciones de ChatGPT para:
 - archivar o programar una publicación;
 - mover un caso a `PENDING_REVIEW`;
 - ejecutar automáticamente todo el lote de imágenes con una única llamada;
-- autenticar usuarios individuales mediante OAuth.
 
 Estas operaciones deben realizarse en el panel o requieren ampliar el contrato MCP.
 
@@ -561,7 +560,7 @@ Estas operaciones deben realizarse en el panel o requieren ampliar el contrato M
 
 ### Complemento de ChatGPT: `/mcp`
 
-Es el servidor MCP estándar conectado mediante el túnel. Expone 17 acciones para casos clínicos y noticias de Actualidad.
+Es el servidor MCP estándar conectado mediante OAuth en producción o Secure MCP Tunnel en desarrollo local. Expone 17 acciones para casos clínicos y noticias de Actualidad.
 
 ### Consola administrativa: `/panel/mcp`
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { UserRole } from "@prisma/client";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { createSession } from "@/lib/auth/session";
 import { hashPassword, validatePassword, verifyPassword } from "@/lib/auth/password";
@@ -26,6 +27,16 @@ if (process.env.NODE_ENV !== "production") {
 
 function getText(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
+}
+
+function safeNextPath(value: string): Route {
+  return (
+    value.startsWith("/") &&
+    !value.startsWith("//") &&
+    !value.includes("\\")
+      ? value
+      : "/panel"
+  ) as Route;
 }
 
 function getLoginAttempt(email: string) {
@@ -59,6 +70,7 @@ function registerFailedLogin(email: string) {
 export async function loginAction(formData: FormData) {
   const email = getText(formData, "email").toLowerCase();
   const password = getText(formData, "password");
+  const next = safeNextPath(getText(formData, "next"));
   assertLoginAllowed(email);
   const user = await db.user.findUnique({ where: { email } });
 
@@ -85,7 +97,7 @@ export async function loginAction(formData: FormData) {
     redirect("/crear-contrasena");
   }
 
-  redirect("/panel");
+  redirect(next);
 }
 
 export async function setupFirstAdminAction(formData: FormData) {

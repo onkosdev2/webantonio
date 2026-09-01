@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -8,15 +9,27 @@ type LoginPageProps = {
   searchParams?: Promise<{
     error?: string;
     setup?: string;
+    next?: string;
   }>;
 };
 
+function safeNextPath(value?: string): Route {
+  return (
+    value?.startsWith("/") &&
+    !value.startsWith("//") &&
+    !value.includes("\\")
+      ? value
+      : "/panel"
+  ) as Route;
+}
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
+  const next = safeNextPath(params?.next);
   const currentUser = await getCurrentUser();
 
   if (currentUser && !currentUser.mustChangePassword) {
-    redirect("/panel");
+    redirect(next);
   }
 
   if (currentUser?.mustChangePassword) {
@@ -70,6 +83,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             ) : null}
 
             <form action={isSetup ? setupFirstAdminAction : loginAction} className="case-form">
+              <input type="hidden" name="next" value={next} />
               <div className="case-form-grid">
                 {isSetup ? (
                   <label className="case-field case-field-span-2">

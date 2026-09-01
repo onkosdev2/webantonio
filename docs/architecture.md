@@ -9,7 +9,7 @@ aplicación Next.js 15 con React 19 y TypeScript.
 ```text
 Sitio público ──────────────┐
 Panel editorial ────────────┼─► Next.js ─► Prisma ─► PostgreSQL
-ChatGPT ─► Secure MCP ──────┘       │
+ChatGPT ─► HTTPS + OAuth ───────────┘       │
                                     ├─► Cloudflare R2
 RSS ─► motor de noticias ───────────┤
                                     └─► OpenAI / GLM / NVIDIA / ComfyUI
@@ -65,7 +65,8 @@ sesión del panel y no representan el catálogo del complemento de ChatGPT.
 ## Producción
 
 - El servicio web ejecuta `npm run build` y `npm start` en el puerto 3000.
-- ChatGPT accede a `/mcp` mediante Secure MCP Tunnel o una futura capa OAuth.
+- ChatGPT accede a `/mcp` directamente por HTTPS y OAuth 2.1 con PKCE. Secure
+  MCP Tunnel se conserva como alternativa para desarrollo local.
 - R2 conserva los medios fuera del sistema de archivos de la aplicación.
 - La ingestión RSS necesita un cron externo o una automatización programada.
 - En producción debe utilizarse PostgreSQL administrado y configurar

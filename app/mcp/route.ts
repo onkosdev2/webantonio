@@ -1,20 +1,38 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createChatGptMcpServer } from "@/lib/mcp/chatgpt-server";
+import {
+  authorizeMcpBearer,
+  protectedResourceMetadataUrl
+} from "@/lib/mcp/oauth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-function isAuthorized(request: Request) {
+async function isAuthorized(request: Request) {
   if (process.env.NODE_ENV !== "production") return true;
   if (process.env.MCP_ALLOW_UNAUTHENTICATED === "true") return true;
+  const authorization = request.headers.get("authorization");
+  if (!authorization?.startsWith("Bearer ")) return false;
+
+  const token = authorization.slice("Bearer ".length);
   const expected = process.env.MCP_API_TOKEN;
-  return Boolean(expected && request.headers.get("authorization") === `Bearer ${expected}`);
+  if (expected && token === expected) return true;
+
+  return Boolean(await authorizeMcpBearer(token));
 }
 
 async function handle(request: Request) {
-  if (!isAuthorized(request)) {
-    return Response.json({ jsonrpc: "2.0", error: { code: -32001, message: "No autorizado" }, id: null }, { status: 401 });
+  if (!(await isAuthorized(request))) {
+    return Response.json(
+      { jsonrpc: "2.0", error: { code: -32001, message: "No autorizado" }, id: null },
+      {
+        status: 401,
+        headers: {
+          "WWW-Authenticate": `Bearer resource_metadata="${protectedResourceMetadataUrl()}", scope="mcp:read mcp:write"`
+        }
+      }
+    );
   }
 
   // This server is stateless and does not expose a server-to-client SSE
