@@ -2,7 +2,8 @@ import {
   issueAccessToken,
   mcpResource,
   readOAuthClient,
-  redeemAuthorizationCode
+  redeemAuthorizationCode,
+  redeemRefreshToken
 } from "@/lib/mcp/oauth";
 
 export const runtime = "nodejs";
@@ -24,14 +25,21 @@ export async function POST(request: Request) {
   const clientId = String(form.get("client_id") ?? "");
   const redirectUri = String(form.get("redirect_uri") ?? "");
   const codeVerifier = String(form.get("code_verifier") ?? "");
+  const refreshToken = String(form.get("refresh_token") ?? "");
   const resource = String(form.get("resource") ?? mcpResource());
 
-  if (grantType !== "authorization_code") {
-    return oauthError("unsupported_grant_type", "Solo se admite authorization_code.");
+  if (grantType !== "authorization_code" && grantType !== "refresh_token") {
+    return oauthError(
+      "unsupported_grant_type",
+      "Solo se admiten authorization_code y refresh_token."
+    );
   }
 
   const client = readOAuthClient(clientId);
-  if (!client || !client.redirectUris.includes(redirectUri)) {
+  if (
+    !client ||
+    (grantType === "authorization_code" && !client.redirectUris.includes(redirectUri))
+  ) {
     return oauthError("invalid_client", "Cliente OAuth no válido.", 401);
   }
 
@@ -39,16 +47,28 @@ export async function POST(request: Request) {
     return oauthError("invalid_target", "El recurso solicitado no es válido.");
   }
 
-  const authorization = redeemAuthorizationCode({
-    code,
-    clientId,
-    redirectUri,
-    codeVerifier,
-    resource
-  });
+  const authorization =
+    grantType === "authorization_code"
+      ? redeemAuthorizationCode({
+          code,
+          clientId,
+          redirectUri,
+          codeVerifier,
+          resource
+        })
+      : redeemRefreshToken({
+          refreshToken,
+          clientId,
+          resource
+        });
 
   if (!authorization) {
-    return oauthError("invalid_grant", "El código expiró, fue utilizado o no supera PKCE.");
+    return oauthError(
+      "invalid_grant",
+      grantType === "authorization_code"
+        ? "El código expiró, fue utilizado o no supera PKCE."
+        : "El token de renovación expiró o no es válido."
+    );
   }
 
   const token = issueAccessToken(authorization);
@@ -57,7 +77,8 @@ export async function POST(request: Request) {
       access_token: token.accessToken,
       token_type: "Bearer",
       expires_in: token.expiresIn,
-      scope: token.scope
+      scope: token.scope,
+      refresh_token: token.refreshToken
     },
     { headers: { "Cache-Control": "no-store", Pragma: "no-cache" } }
   );

@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 export const MCP_SCOPES = ["mcp:read", "mcp:write"] as const;
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
+const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 180;
 const AUTHORIZATION_CODE_TTL_MS = 5 * 60 * 1000;
 const CLIENT_TTL_SECONDS = 60 * 60 * 24 * 365;
 const LOCAL_SECRET = "onkos-local-mcp-oauth-secret";
@@ -46,8 +47,22 @@ type AuthorizationCode = {
   expiresAt: number;
 };
 
+type TokenAuthorization = Pick<
+  AuthorizationCode,
+  "userId" | "clientId" | "resource" | "scope"
+>;
+
 type AccessToken = SignedPayload & {
   purpose: "access_token";
+  userId: string;
+  clientId: string;
+  resource: string;
+  scope: string;
+  issuedAt: number;
+};
+
+type RefreshToken = SignedPayload & {
+  purpose: "refresh_token";
   userId: string;
   clientId: string;
   resource: string;
@@ -265,7 +280,7 @@ export function redeemAuthorizationCode(input: {
   return authorization;
 }
 
-export function issueAccessToken(authorization: AuthorizationCode) {
+export function issueAccessToken(authorization: TokenAuthorization) {
   const issuedAt = Math.floor(Date.now() / 1000);
   const payload: AccessToken = {
     purpose: "access_token",
@@ -280,7 +295,39 @@ export function issueAccessToken(authorization: AuthorizationCode) {
   return {
     accessToken: signPayload(payload),
     expiresIn: ACCESS_TOKEN_TTL_SECONDS,
-    scope: payload.scope
+    scope: payload.scope,
+    refreshToken: signPayload<RefreshToken>({
+      purpose: "refresh_token",
+      userId: authorization.userId,
+      clientId: authorization.clientId,
+      resource: authorization.resource,
+      scope: authorization.scope,
+      issuedAt,
+      exp: issuedAt + REFRESH_TOKEN_TTL_SECONDS
+    })
+  };
+}
+
+export function redeemRefreshToken(input: {
+  refreshToken: string;
+  clientId: string;
+  resource: string;
+}) {
+  const token = readPayload<RefreshToken>(input.refreshToken, "refresh_token");
+
+  if (
+    !token ||
+    token.clientId !== input.clientId ||
+    token.resource !== input.resource
+  ) {
+    return null;
+  }
+
+  return {
+    userId: token.userId,
+    clientId: token.clientId,
+    resource: token.resource,
+    scope: token.scope
   };
 }
 

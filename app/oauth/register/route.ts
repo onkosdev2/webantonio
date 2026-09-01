@@ -44,9 +44,15 @@ export async function POST(request: Request) {
   const grantTypes = body?.grant_types;
   if (
     grantTypes !== undefined &&
-    (!Array.isArray(grantTypes) || grantTypes.some((value) => value !== "authorization_code"))
+    (!Array.isArray(grantTypes) ||
+      !grantTypes.includes("authorization_code") ||
+      grantTypes.some(
+        (value) => value !== "authorization_code" && value !== "refresh_token"
+      ))
   ) {
-    return invalidClientMetadata("Solo se admite authorization_code.");
+    return invalidClientMetadata(
+      "Solo se admiten authorization_code y refresh_token."
+    );
   }
 
   const responseTypes = body?.response_types;
@@ -68,7 +74,7 @@ export async function POST(request: Request) {
       client_id_issued_at: client.issuedAt,
       client_name: client.clientName,
       redirect_uris: client.redirectUris,
-      grant_types: ["authorization_code"],
+      grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: "none"
     },
