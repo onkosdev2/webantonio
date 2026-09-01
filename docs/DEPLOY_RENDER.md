@@ -1,7 +1,12 @@
 # Plan de despliegue: Render + Supabase
 
-Revisión: 31 de agosto de 2026. Este documento es un plan; no crea servicios,
-no migra datos ni cambia el conector de ChatGPT.
+Revisión: 31 de agosto de 2026. Este documento describe el plan y su estado;
+no crea servicios ni cambia el conector de ChatGPT por sí mismo.
+
+Estado actual: GitHub actualizado y ensayo de migración a Supabase completado.
+Se verificaron 654 registros en ocho tablas. La aplicación sigue usando la base
+local; Render y el corte definitivo siguen pendientes. Véase el
+[informe de migración a Supabase](SUPABASE_MIGRATION.md).
 
 ## Arquitectura propuesta
 
@@ -199,5 +204,8 @@ detener escrituras y reconciliar esos cambios antes del retorno para no perderlo
 4. Implementar y verificar OAuth MCP de producción.
 5. Ejecutar el corte final de datos, dominio y conector; reanudar la automatización.
 
-Pendientes externos: acceso GitHub para subir el commit, acceso a Render/Supabase,
-región/plan aprobados, dominio y credenciales de producción por canal seguro.
+Pendientes externos: verificar autorización de la integración GitHub de Render
+(el push con token ya funcionó, pero no garantiza acceso a la integración),
+acceso a Render, región/plan aprobados, dominio y credenciales nuevas de
+producción por canal seguro. Supabase ya contiene una copia verificada;
+no ejecutar nuevamente la importación inicial sobre ese destino con datos.
