@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
               "connect-src 'self'",
               "frame-ancestors 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
+              "form-action 'self' https://chatgpt.com https://platform.openai.com",
               "object-src 'none'"
             ].join("; ")
           }
