@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import {
   filterPublicArchiveItems,
@@ -6,6 +7,19 @@ import {
   getTypeLabel
 } from "@/lib/content/public";
 import { getSearchParamValue } from "@/lib/content/public-query";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...buildPageMetadata({
+    title: "Buscar en el archivo oncológico | Dr. Antonio Camargo",
+    description: "Buscador interno del archivo oncológico publicado.",
+    path: "/buscar"
+  }),
+  robots: {
+    index: false,
+    follow: true
+  }
+};
 
 type BuscarPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

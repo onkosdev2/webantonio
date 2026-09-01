@@ -27,6 +27,7 @@ export type PublicArchiveItem = {
   kicker: string;
   type: PublicArchiveType;
   publishedAt?: Date | null;
+  updatedAt?: Date | null;
   tumorType?: string;
   biomarkers?: string[];
   tags?: string[];
@@ -192,6 +193,7 @@ export async function getPublicArchiveItems() {
     kicker: "Caso clínico",
     type: "clinical_case",
     publishedAt: item.publishedAt,
+    updatedAt: item.updatedAt,
     tumorType: item.tumorType,
     biomarkers: item.biomarkers,
     tags: item.tags,
@@ -211,6 +213,7 @@ export async function getPublicArchiveItems() {
     kicker: "Noticia oncológica",
     type: "news_item",
     publishedAt: item.publishedAt,
+    updatedAt: item.updatedAt,
     tumorType: item.tumorType,
     biomarkers: item.biomarkers,
     tags: item.tags,
@@ -232,6 +235,7 @@ export async function getPublicArchiveItems() {
     kicker: "Editorial",
     type: "editorial",
     publishedAt: item.publishedAt,
+    updatedAt: item.updatedAt,
     tags: item.tags,
     source: item.source,
     meta: [item.source || "", ...item.tags.slice(0, 3)].filter(Boolean)
@@ -244,6 +248,7 @@ export async function getPublicArchiveItems() {
     kicker: "Investigación",
     type: "research",
     publishedAt: item.publishedAt,
+    updatedAt: item.updatedAt,
     tags: item.tags,
     source: item.source,
     meta: [item.source || "", ...item.tags.slice(0, 3)].filter(Boolean)
@@ -256,6 +261,7 @@ export async function getPublicArchiveItems() {
     kicker: "Reflexión",
     type: "reflection",
     publishedAt: item.publishedAt,
+    updatedAt: item.updatedAt,
     tags: item.tags,
     source: item.source,
     meta: item.tags.slice(0, 3)
@@ -268,6 +274,7 @@ export async function getPublicArchiveItems() {
     kicker: "Historia",
     type: "story",
     publishedAt: item.publishedAt,
+    updatedAt: item.updatedAt,
     tags: item.tags,
     source: item.source,
     meta: item.tags.slice(0, 3)

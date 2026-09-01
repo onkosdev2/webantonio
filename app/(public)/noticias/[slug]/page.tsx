@@ -26,6 +26,9 @@ export async function generateMetadata({
     title: `${item.title} | Noticia oncológica`,
     description: item.summary,
     path: `/noticias/${item.slug}`,
+    image: item.featuredImage?.src,
+    datePublished: item.publishedAt,
+    dateModified: item.updatedAt,
     keywords: [
       item.source,
       item.tumorType,
@@ -107,6 +110,8 @@ export default async function NoticiaPublicaPage({
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
           articleSection: "Noticias oncológicas",
+          image: item.featuredImage?.src,
+          type: "NewsArticle",
           keywords: [item.source, item.tumorType, ...item.biomarkers, ...item.tags].filter(Boolean)
         }),
         breadcrumbJsonLd([

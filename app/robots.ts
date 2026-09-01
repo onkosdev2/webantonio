@@ -7,10 +7,19 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/panel", "/login", "/crear-contrasena", "/api"]
+        disallow: [
+          "/panel",
+          "/login",
+          "/logout",
+          "/crear-contrasena",
+          "/api",
+          "/oauth",
+          "/mcp",
+          "/.well-known"
+        ]
       }
     ],
-    sitemap: absoluteUrl("/sitemap.xml"),
+    sitemap: [absoluteUrl("/sitemap.xml"), absoluteUrl("/news-sitemap.xml")],
     host: siteUrl.origin
   };
 }

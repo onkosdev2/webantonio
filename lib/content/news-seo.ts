@@ -1,8 +1,8 @@
 const NEWS_SLUG_STOP_WORDS = new Set([
   "a", "al", "ante", "bajo", "con", "contra", "de", "del", "desde",
-  "durante", "e", "el", "ella", "en", "entre", "es", "esta", "este",
+  "como", "durante", "e", "el", "ella", "en", "entre", "es", "esta", "este",
   "ha", "hacia", "han", "hasta", "la", "las", "lo", "los", "ni", "o",
-  "para", "por", "que", "se", "sin", "sobre", "su", "sus", "tras", "u",
+  "mas", "para", "por", "que", "se", "sin", "sobre", "su", "sus", "tras", "u",
   "un", "una", "unos", "unas", "y",
   "an", "and", "at", "by", "for", "from", "in", "into", "of", "on",
   "or", "the", "to", "with", "without"
@@ -10,6 +10,21 @@ const NEWS_SLUG_STOP_WORDS = new Set([
 
 const MAX_NEWS_SLUG_LENGTH = 72;
 const MAX_NEWS_SLUG_WORDS = 10;
+
+// These words carry meaning only when the following token is present. If the
+// length cap cuts the phrase after one of them, omit the dangling fragment.
+const NEWS_SLUG_INCOMPLETE_ENDINGS = new Set([
+  "exon",
+  "fase",
+  "nuevo",
+  "nueva",
+  "primer",
+  "primera",
+  "segundo",
+  "segunda",
+  "tercer",
+  "tercera"
+]);
 
 function normalizeSlugTokens(input: string) {
   return input
@@ -31,6 +46,13 @@ function fitTokens(tokens: string[]) {
     selected.push(token);
   }
 
+  while (
+    selected.length > 2 &&
+    NEWS_SLUG_INCOMPLETE_ENDINGS.has(selected[selected.length - 1])
+  ) {
+    selected.pop();
+  }
+
   return selected.join("-");
 }
 
@@ -49,6 +71,7 @@ export function isSeoNewsSlug(slug: string) {
     slug.length <= MAX_NEWS_SLUG_LENGTH &&
     tokens.length >= 2 &&
     tokens.join("-") === slug &&
-    tokens.every((token) => !NEWS_SLUG_STOP_WORDS.has(token))
+    tokens.every((token) => !NEWS_SLUG_STOP_WORDS.has(token)) &&
+    buildSeoNewsSlug(slug) === slug
   );
 }

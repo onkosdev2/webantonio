@@ -30,14 +30,36 @@ export function buildPageMetadata({
   description,
   path,
   image = defaultOgImage,
-  keywords = []
+  keywords = [],
+  type = "website",
+  publishedTime,
+  modifiedTime
 }: {
   title: string;
   description: string;
   path: string;
   image?: string;
   keywords?: string[];
+  type?: "website" | "article";
+  publishedTime?: string;
+  modifiedTime?: string;
 }): Metadata {
+  const openGraphBase = {
+    title,
+    description,
+    url: path,
+    siteName,
+    locale: "es_PE",
+    images: [
+      {
+        url: image,
+        width: 1200,
+        height: 630,
+        alt: title
+      }
+    ]
+  };
+
   return {
     title: {
       absolute: title
@@ -47,22 +69,19 @@ export function buildPageMetadata({
     alternates: {
       canonical: path
     },
-    openGraph: {
-      title,
-      description,
-      url: path,
-      siteName,
-      locale: "es_PE",
-      type: "website",
-      images: [
-        {
-          url: image,
-          width: 1200,
-          height: 630,
-          alt: `${doctorName}, oncólogo clínico en Lima`
-        }
-      ]
-    },
+    openGraph:
+      type === "article"
+        ? {
+            ...openGraphBase,
+            type: "article",
+            publishedTime,
+            modifiedTime,
+            authors: [absoluteUrl("/sobre-mi")]
+          }
+        : {
+            ...openGraphBase,
+            type: "website"
+          },
     twitter: {
       card: "summary_large_image",
       title,
@@ -166,7 +185,9 @@ export function articleJsonLd({
   datePublished,
   dateModified,
   articleSection,
-  keywords = []
+  keywords = [],
+  image = defaultOgImage,
+  type = "MedicalScholarlyArticle"
 }: {
   path: string;
   headline: string;
@@ -175,6 +196,8 @@ export function articleJsonLd({
   dateModified?: Date | string | null;
   articleSection: string;
   keywords?: string[];
+  image?: string;
+  type?: "MedicalScholarlyArticle" | "NewsArticle";
 }) {
   const published = datePublished
     ? new Date(datePublished).toISOString()
@@ -185,14 +208,19 @@ export function articleJsonLd({
 
   return {
     "@context": "https://schema.org",
-    "@type": "MedicalScholarlyArticle",
+    "@type": type,
     "@id": absoluteUrl(`${path}#article`),
-    mainEntityOfPage: absoluteUrl(path),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": absoluteUrl(path)
+    },
     url: absoluteUrl(path),
     headline,
     description,
-    image: absoluteUrl(defaultOgImage),
+    image: [absoluteUrl(image)],
+    thumbnailUrl: absoluteUrl(image),
     inLanguage: "es-PE",
+    isAccessibleForFree: true,
     articleSection,
     keywords,
     datePublished: published,
@@ -234,17 +262,27 @@ export function articleMetadata({
   title,
   description,
   path,
-  keywords = []
+  keywords = [],
+  image = defaultOgImage,
+  datePublished,
+  dateModified
 }: {
   title: string;
   description: string;
   path: string;
   keywords?: string[];
+  image?: string;
+  datePublished?: Date | string | null;
+  dateModified?: Date | string | null;
 }) {
   return buildPageMetadata({
     title,
     description,
     path,
-    keywords
+    image,
+    keywords,
+    type: "article",
+    publishedTime: datePublished ? new Date(datePublished).toISOString() : undefined,
+    modifiedTime: dateModified ? new Date(dateModified).toISOString() : undefined
   });
 }

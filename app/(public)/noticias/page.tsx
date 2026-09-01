@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import { NewsLiveUpdates } from "@/components/editorial/clinical-cases-live-updates";
 import { getSearchParamValue } from "@/lib/content/public-query";
@@ -7,6 +8,20 @@ import {
 } from "@/lib/content/public";
 import { getPublishedNewsItems } from "@/lib/content/news";
 import { formatPublicPublicationDate } from "@/lib/content/public-dates";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Noticias Oncológicas | Dr. Antonio Camargo",
+  description:
+    "Actualidad oncológica, avances terapéuticos, biomarcadores y evidencia clínica explicados con contexto médico.",
+  path: "/noticias",
+  keywords: [
+    "noticias oncológicas",
+    "avances en cáncer",
+    "tratamientos oncológicos",
+    "biomarcadores en cáncer"
+  ]
+});
 
 type NoticiasPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

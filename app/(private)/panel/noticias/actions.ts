@@ -101,6 +101,8 @@ function revalidateNewsPaths(previousSlug: string, nextSlug: string) {
   revalidatePath("/noticias");
   revalidatePath(`/noticias/${previousSlug}`);
   revalidatePath(`/noticias/${nextSlug}`);
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/news-sitemap.xml");
 }
 
 export async function createNewsItemAction(formData: FormData) {

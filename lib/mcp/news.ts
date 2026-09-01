@@ -70,6 +70,8 @@ function revalidateNews(slug: string) {
   revalidatePath(`/noticias/${slug}`);
   revalidatePath("/panel/noticias");
   revalidatePath(`/panel/noticias/${slug}`);
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/news-sitemap.xml");
 }
 
 function normalizeStringArray(value: unknown) {
