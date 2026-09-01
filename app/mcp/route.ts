@@ -130,12 +130,10 @@ async function handle(request: Request) {
     );
   }
 
-  // This server is stateless and does not expose a server-to-client SSE
-  // channel. A sessionless GET would otherwise remain open until the client
-  // timeout, which makes Secure MCP Tunnel's startup probe look unhealthy.
-  if (request.method === "GET" && !request.headers.get("mcp-session-id")) {
-    return new Response(null, { status: 405, headers: { Allow: "POST" } });
-  }
+  // Let the SDK answer GET requests with the Streamable HTTP SSE channel.
+  // Current OpenAI clients probe this channel before initialization; returning
+  // 405 here makes them fall back to a legacy /sse URL that this server does
+  // not expose and surfaces as "MCP SSE probe returned 404".
 
   // Secure MCP Tunnel probes modern MCP servers with server/discover before
   // falling back to the legacy initialize handshake. The SDK version used by
@@ -175,7 +173,13 @@ async function handle(request: Request) {
   }
 
   const server = createChatGptMcpServer();
-  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+    // Flush the SSE response promptly so health probes see a live stream
+    // instead of timing out while waiting for the SDK's 15-second default.
+    keepAliveMs: 1_000
+  });
   try {
     await server.connect(transport);
     const response = await transport.handleRequest(transportRequest);
