@@ -9,6 +9,70 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
+const MODERN_PROTOCOL_VERSION = "2026-07-28";
+const SERVER_INFO = { name: "onkos-content-publisher", version: "2.1.0" };
+
+function modernRequestVersion(rpcRequest: {
+  params?: { _meta?: Record<string, unknown> };
+} | null) {
+  return rpcRequest?.params?._meta?.["io.modelcontextprotocol/protocolVersion"];
+}
+
+async function modernizeResponse(
+  response: Response,
+  rpcMethod: string | null,
+  modern: boolean
+) {
+  if (!modern || !response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+    return response;
+  }
+
+  const payload = await response.clone().json().catch(() => null) as {
+    result?: Record<string, unknown>;
+  } | null;
+  if (!payload?.result || typeof payload.result !== "object") return response;
+
+  const result = payload.result;
+  result.resultType ??= "complete";
+  result._meta = {
+    ...(typeof result._meta === "object" && result._meta ? result._meta : {}),
+    "io.modelcontextprotocol/serverInfo": SERVER_INFO
+  };
+
+  if (rpcMethod === "tools/list") {
+    const tools = Array.isArray(result.tools) ? result.tools : [];
+    result.tools = tools.map((tool) => {
+      if (!tool || typeof tool !== "object") return tool;
+      const definition = tool as Record<string, unknown>;
+      const annotations = definition.annotations as { readOnlyHint?: boolean } | undefined;
+      const scopes = annotations?.readOnlyHint
+        ? ["mcp:read"]
+        : ["mcp:read", "mcp:write"];
+      const securitySchemes = [{ type: "oauth2", scopes }];
+
+      return {
+        ...definition,
+        securitySchemes,
+        _meta: {
+          ...(typeof definition._meta === "object" && definition._meta ? definition._meta : {}),
+          securitySchemes
+        }
+      };
+    });
+    result.ttlMs ??= 60_000;
+    result.cacheScope ??= "private";
+  }
+
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  headers.set("content-type", "application/json; charset=utf-8");
+  return new Response(JSON.stringify(payload), {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 async function isAuthorized(request: Request) {
   if (process.env.NODE_ENV !== "production") return true;
   if (process.env.MCP_ALLOW_UNAUTHENTICATED === "true") return true;
@@ -27,7 +91,11 @@ async function handle(request: Request) {
     ? await request.clone().json().catch(() => null) as {
         id?: string | number | null;
         method?: string;
-        params?: { protocolVersion?: string };
+        params?: {
+          protocolVersion?: string;
+          _meta?: Record<string, unknown>;
+          [key: string]: unknown;
+        };
       } | null
     : null;
   const rpcMethod = rpcRequest?.method ?? null;
@@ -80,10 +148,12 @@ async function handle(request: Request) {
         id: rpcRequest.id ?? null,
         result: {
           resultType: "complete",
-          supportedVersions: ["2025-11-25"],
-          capabilities: { tools: { listChanged: true } },
-          serverInfo: { name: "onkos-content-publisher", version: "2.1.0" },
-          instructions: "Servidor MCP de ONKOS para casos clínicos y noticias de actualidad oncológica."
+          supportedVersions: [MODERN_PROTOCOL_VERSION],
+          capabilities: { tools: {} },
+          _meta: { "io.modelcontextprotocol/serverInfo": SERVER_INFO },
+          instructions: "Servidor MCP de ONKOS para casos clínicos y noticias de actualidad oncológica.",
+          ttlMs: 60_000,
+          cacheScope: "private"
         }
       });
     }
@@ -94,12 +164,15 @@ async function handle(request: Request) {
   try {
     await server.connect(transport);
     const response = await transport.handleRequest(request);
+    const modern = modernRequestVersion(rpcRequest) === MODERN_PROTOCOL_VERSION;
+    const compatibleResponse = await modernizeResponse(response, rpcMethod, modern);
     console.info("[mcp] response", {
       rpcMethod,
-      status: response.status,
-      contentType: response.headers.get("content-type")
+      status: compatibleResponse.status,
+      contentType: compatibleResponse.headers.get("content-type"),
+      protocolVersion: modern ? MODERN_PROTOCOL_VERSION : "legacy"
     });
-    return response;
+    return compatibleResponse;
   } catch (error) {
     console.error("[mcp] request failed", {
       httpMethod: request.method,
