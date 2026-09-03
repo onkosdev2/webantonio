@@ -238,7 +238,7 @@ export async function generateCaseImage(input: { slug: string; figureNumber: num
 
 export async function setCaseFeaturedImage(input: { slug: string; mediaId: string }) {
   const content = await db.content.findUnique({ where: { slug: input.slug } });
-  const asset = content ? await db.mediaAsset.findFirst({ where: { id: input.mediaId, contentId: content.id } }) : null;
+  const asset = content ? await db.mediaAsset.findFirst({ where: { id: input.mediaId, contentId: content.id, mediaType: "image", isSensitive: false, isGalleryUpload: false } }) : null;
   if (!content || content.type !== ContentType.CLINICAL_CASE || !asset) throw new Error("La imagen no pertenece al caso clínico indicado.");
   await db.$transaction(async (tx) => {
     await tx.mediaAsset.updateMany({ where: { contentId: content.id }, data: { isFeatured: false } });
@@ -254,9 +254,10 @@ export async function publishClinicalCase(input: { slug: string; confirmation: s
   if (input.confirmation !== "PUBLICAR") throw new Error("La publicación requiere confirmación explícita con la palabra PUBLICAR.");
   const content = await db.content.findUnique({ where: { slug: input.slug }, include: { oncologyData: true, media: true } });
   if (!content || content.type !== ContentType.CLINICAL_CASE) throw new Error("Caso clínico no encontrado.");
+  if (content.status === ContentStatus.ARCHIVED) throw new Error("Restaura el caso archivado desde el panel antes de publicarlo.");
   if (!content.oncologyData?.anonymized) throw new Error("Confirma la anonimización antes de publicar.");
   assertPrivateDataIsSafe(content);
-  if (!content.media.some((asset) => asset.isFeatured)) throw new Error("Define una imagen principal antes de publicar.");
+  if (!content.media.some((asset) => asset.isFeatured && asset.mediaType === "image" && !asset.isSensitive)) throw new Error("Define una imagen principal no sensible antes de publicar.");
   const updated = await db.content.update({ where: { id: content.id }, data: { status: ContentStatus.PUBLISHED, publishedAt: content.publishedAt || new Date(), importLogs: { create: { source: "mcp:publish_clinical_case", payloadType: "clinical_case", payloadSummary: `Publicación confirmada desde ChatGPT: ${content.title}`, state: "VALIDATED" } } } });
   revalidatePath("/"); revalidatePath("/casos-clinicos"); revalidatePath(`/casos-clinicos/${content.slug}`);
 
@@ -281,5 +282,5 @@ export async function publishClinicalCase(input: { slug: string; confirmation: s
 export async function getClinicalCase(input: { slug: string }) {
   const content = await db.content.findUnique({ where: { slug: input.slug }, include: { oncologyData: true, media: { orderBy: { createdAt: "asc" } }, visualPlans: { where: { isCurrent: true }, include: { figures: { orderBy: { figureNumber: "asc" } } } } } });
   if (!content || content.type !== ContentType.CLINICAL_CASE) throw new Error("Caso clínico no encontrado.");
-  return { id: content.id, slug: content.slug, status: content.status, title: content.title, summary: content.summary, body: content.body, oncology: content.oncologyData, figures: content.visualPlans[0]?.figures.map((figure) => ({ id: figure.id, figure_number: figure.figureNumber, title: figure.title, category: figure.category, prompt: figure.optimizedPrompt, placement: figure.placement, placement_anchor: figure.placementAnchor, status: figure.status, is_featured: figure.isFeatured })) || [], media: content.media.map((asset) => ({ id: asset.id, title: asset.title, image_url: asset.storagePath, alt_text: asset.altText, is_featured: asset.isFeatured, figure_id: asset.figureId })), ...urls(content.slug) };
+  return { id: content.id, slug: content.slug, status: content.status, updated_at: content.updatedAt.toISOString(), tags: content.tags, title: content.title, summary: content.summary, body: content.body, oncology: content.oncologyData, figures: content.visualPlans[0]?.figures.map((figure) => ({ id: figure.id, figure_number: figure.figureNumber, title: figure.title, category: figure.category, prompt: figure.optimizedPrompt, placement: figure.placement, placement_anchor: figure.placementAnchor, status: figure.status, is_featured: figure.isFeatured })) || [], media: content.media.map((asset) => ({ id: asset.id, title: asset.title, image_url: asset.storagePath, alt_text: asset.altText, is_featured: asset.isFeatured, figure_id: asset.figureId, is_gallery_upload: asset.isGalleryUpload, gallery_order: asset.isGalleryUpload ? asset.galleryOrder : null, caption: asset.caption })), ...urls(content.slug) };
 }

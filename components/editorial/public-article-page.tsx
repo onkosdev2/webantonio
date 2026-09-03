@@ -22,6 +22,8 @@ import { SiteHeader } from "@/components/layout/site-header";
 import type { PublicPublicationDate } from "@/lib/content/public-dates";
 import { PublicationDateTime } from "./publication-date-time";
 import styles from "./public-article-page.module.css";
+import { PublicationGallery } from "./publication-gallery";
+import type { PublicationGalleryImage } from "@/lib/content/publication-gallery";
 
 type PublicChip = string | { label: string; href?: string };
 
@@ -46,6 +48,7 @@ type PublicArticlePageProps = {
     meta?: PublicChip[];
   }>;
   jsonLd?: unknown[];
+  gallery?: PublicationGalleryImage[];
 };
 
 type ArticleBlock =
@@ -245,7 +248,8 @@ export function PublicArticlePage({
   meta,
   tags = [],
   relatedItems = [],
-  jsonLd = []
+  jsonLd = [],
+  gallery = []
 }: PublicArticlePageProps) {
   const isClinicalCase = variant === "clinical-case";
   const usesAtlasLayout = variant === "clinical-case" || variant === "news";
@@ -469,6 +473,7 @@ export function PublicArticlePage({
               </aside>
             </div>
 
+            <PublicationGallery images={gallery} />
             <footer className={styles.articleFooter}>
               <div>
                 <span>Archivo editorial</span>

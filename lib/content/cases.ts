@@ -110,7 +110,7 @@ export async function getClinicalCaseBySlug(slug: string) {
     include: {
       oncologyData: true,
       media: {
-        where: { mediaType: "image" },
+        where: { mediaType: "image", isGalleryUpload: false },
         orderBy: { createdAt: "desc" }
       },
       visualPlans: {

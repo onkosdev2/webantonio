@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { splitCommaSeparated } from "@/lib/content/cases";
-import { createDraftViaMcp } from "@/lib/mcp/server";
+import { createEditorialDraft } from "@/lib/content/editorial-workflows";
 
 function getText(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -42,7 +42,7 @@ export async function createImportAction(formData: FormData) {
   const notes = getText(formData, "notes");
   const sourceLabel = `${channel}:${source}`;
 
-  const created = await createDraftViaMcp({
+  const created = await createEditorialDraft({
     type: mapPayloadTypeToDraftType(payloadType),
     title,
     summary,

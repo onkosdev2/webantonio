@@ -166,7 +166,7 @@ separado y verificar dónde escribe y cómo propaga eventos; no es parte del
 despliegue web básico ni debe asumirse que basta con cambiar su URL.
 
 Después de validar OAuth, configurar la conexión de producción en ChatGPT,
-actualizar sus metadatos y comprobar las 17 herramientas. Primero probar lectura;
+actualizar sus metadatos y comprobar las 22 herramientas. Primero probar lectura;
 probar borradores/publicación solo con autorización y contenido de prueba acordado.
 Si se cambia una conexión de modo desarrollador, usar Refresh y verificar en una
 conversación nueva. Revisar aparte la conexión y autorización de la tarea recurrente:

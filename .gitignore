@@ -23,3 +23,6 @@ tsconfig.tsbuildinfo
 /hero.png
 *:Zone.Identifier
 /wget-log
+.env.mcp-local
+.next-mcp-local/
+public/uploads/publications/

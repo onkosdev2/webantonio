@@ -7,10 +7,10 @@ El MCP de ONKOS conecta ChatGPT con el archivo editorial de casos clínicos y no
 El servidor conectado a ChatGPT se identifica como:
 
 - Nombre técnico: `onkos-content-publisher`
-- Versión actual: `2.1.0`
+- Versión actual: `2.2.0`
 - Endpoint local: `http://localhost:3000/mcp`
-- Transporte: Streamable HTTP a través de Secure MCP Tunnel
-- Número de acciones disponibles en ChatGPT: 17
+- Transporte: Streamable HTTP con OAuth en producción; túnel opcional en local
+- Número de acciones del catálogo: 22
 
 El diseño del flujo prioriza cuatro principios:
 
@@ -100,7 +100,7 @@ Puedes publicar un caso únicamente cuando:
 
 ---
 
-## 3. Las 17 acciones disponibles
+## 3. Las 22 acciones disponibles
 
 ### 3.1 `list_recent_clinical_cases`
 
@@ -338,6 +338,72 @@ posterior falla.
 
 ---
 
+### 3.18 `update_clinical_case`
+
+Edita parcialmente un caso sin cambiar su slug ni publicarlo. Campos omitidos se conservan; los cambios clínicos marcan el plan visual como `STALE` para revisión. Requiere `anonymizedConfirmed: true` y valida de nuevo la privacidad.
+
+```json
+{
+  "slug": "caso-ejemplo",
+  "anonymizedConfirmed": true,
+  "changes": { "title": "Título clínico revisado y anonimizado", "tags": ["pulmón"] }
+}
+```
+
+`changes` admite título, resumen, cuerpo, etiquetas, tumor, estadio, biomarcadores, línea/plan de tratamiento, respuesta, toxicidades, evidencia y notas de revisión. No admite cambiar estado ni slug.
+
+### 3.19 `archive_clinical_case`
+
+Retira el caso del sitio público con `{"slug":"caso-ejemplo","confirmation":"ARCHIVAR"}`. Es un borrado lógico: conserva texto, medios e historial. Repetir el archivado es seguro. La restauración queda en el panel.
+
+### 3.20 `update_news_item`
+
+Edita parcialmente una noticia con `slug` y `changes`. Admite `title`, `summary`, `body`, `tags`, `tumorType`, `biomarkers`, `sourceName` y `sourceUrl`. La fuente debe ser HTTP(S), mantenerse completa y no duplicar otra noticia. Conserva los campos omitidos, el estado y el slug.
+
+### 3.21 `archive_news_item`
+
+Retira una noticia sin borrar archivos: `{"slug":"noticia-ejemplo","confirmation":"ARCHIVAR"}`.
+
+En las cuatro herramientas puedes enviar `expectedUpdatedAt` con el `updated_at` de la última lectura para detectar cambios concurrentes. Para editar contenido ya publicado, añade `confirmation: "ACTUALIZAR_PUBLICADO"` tras la aprobación del usuario. Un elemento archivado no se puede editar mediante estas herramientas.
+
+### 3.22 `manage_publication_images`
+
+Gestiona portada y galería para `entity: "clinical_case"` o `"news_item"` y un `slug`.
+
+| `action` | Parámetro | Uso |
+| --- | --- | --- |
+| `add_gallery` | `images` | Carga archivos expresamente para la galería sin reemplazar las cargas anteriores. |
+| `replace_gallery` | `images` | Redefine la galería con los archivos cargados y el orden indicados. |
+| `set_featured` | `featuredMediaId` o un archivo en `images` | Selecciona una imagen de la publicación que no sea de galería, o carga una portada directamente. |
+| `reorder_gallery` | `mediaIds` | Ordena todos los IDs de la galería, una sola vez cada uno. |
+| `remove_gallery` | `mediaIds` | Quita imágenes de la galería sin borrar archivos ni cambiar la portada. |
+
+Cada entrada de `images` requiere `imageBase64` (archivo real PNG/JPEG/WEBP), `title` y `altText`; `caption` es opcional. **No admite `mediaId`, rutas ni URLs.** La galería acepta únicamente cargas realizadas para ese propósito: nunca incorpora ni reutiliza portadas, figuras generadas o imágenes existentes en la publicación o biblioteca. Si no hay archivos aportados para galería, no se generan sustitutos y no aparece carrusel. Los `mediaIds` de ordenar/quitar solo identifican cargas previas de esa misma galería.
+
+Para cargar archivos a casos se exige `anonymizedConfirmed: true` tras revisar visualmente su anonimización. El servidor elimina metadatos EXIF, pero no detecta identificadores escritos dentro de los píxeles. La procedencia de un archivo externo requiere revisión humana; no se intenta inferir mediante sus píxeles si fue creado con IA.
+
+```json
+{
+  "entity": "news_item",
+  "slug": "noticia-ejemplo",
+  "action": "add_gallery",
+  "images": [
+    {
+      "imageBase64": "<BASE64_DEL_ARCHIVO_APORTADO>",
+      "title": "Imagen aportada para galería",
+      "altText": "Descripción accesible de la imagen aportada",
+      "caption": "Imagen complementaria de la publicación"
+    }
+  ]
+}
+```
+
+El marcador del ejemplo debe sustituirse por bytes reales, no enviarse literalmente. La respuesta devuelve IDs y posiciones de la galería y `featured_media_id`. Para subir una portada usa directamente `action: "set_featured"` e `images: [{imageBase64, title, altText}]` con un solo archivo. No pasa por la galería. También puedes elegir `featuredMediaId` de una imagen de la publicación, pero no de una carga de galería. Las dos finalidades no se convierten una en otra.
+
+Límites: 10 MB por archivo, 20 MB por lote, 20 imágenes por llamada y 30 en la galería. No se reutilizan imágenes existentes, sensibles ni de otra publicación. No se descargan URLs arbitrarias. En contenido publicado se requiere `ACTUALIZAR_PUBLICADO`; también acepta `expectedUpdatedAt`.
+
+El sitio muestra la galería **al final del cuerpo**, en un carrusel manual con botones, teclado y desplazamiento táctil. No recorta las imágenes clínicas ni reproduce diapositivas automáticamente. Portada, figuras del cuerpo y galería son independientes. Redefinir significa cambiar la selección, no retocar píxeles con IA.
+
 ## 4. Flujo editorial recomendado
 
 ### Dos modos desde una sola instrucción
@@ -544,11 +610,10 @@ No incluyas claves de OpenAI, NVIDIA, túnel o almacenamiento en conversaciones,
 
 La versión actual no expone acciones de ChatGPT para:
 
-- editar directamente el título, resumen, cuerpo o metadatos de un caso existente;
-- eliminar un caso;
-- eliminar una imagen;
+- eliminar físicamente una publicación o sus archivos;
+- restaurar una publicación archivada desde MCP;
 - regenerar una imagen mediante el mismo identificador;
-- archivar o programar una publicación;
+- programar una publicación;
 - mover un caso a `PENDING_REVIEW`;
 - ejecutar automáticamente todo el lote de imágenes con una única llamada;
 
@@ -560,13 +625,13 @@ Estas operaciones deben realizarse en el panel o requieren ampliar el contrato M
 
 ### Complemento de ChatGPT: `/mcp`
 
-Es el servidor MCP estándar conectado mediante OAuth en producción o Secure MCP Tunnel en desarrollo local. Expone 17 acciones para casos clínicos y noticias de Actualidad.
+Es el servidor MCP estándar conectado mediante OAuth en producción o Secure MCP Tunnel en desarrollo local. Expone 22 acciones para casos clínicos y noticias de Actualidad.
 
 ### Consola administrativa: `/panel/mcp`
 
-Es una interfaz interna de ONKOS para explorar recursos y probar una capa administrativa anterior. Incluye recursos de casos, noticias, editoriales e investigación, además de herramientas internas de búsqueda, creación de borradores no clínicos y envío a revisión.
+Es una página informativa del servidor y sus reglas de conexión. La antigua consola ejecutora, sus cinco herramientas fuera del catálogo y los endpoints `/api/mcp/tools`, `/api/mcp/resource` y `/api/mcp/resources` se retiraron.
 
-La consola administrativa no representa exactamente el catálogo que ve ChatGPT. Para verificar las capacidades del complemento deben revisarse las acciones descubiertas desde `/mcp`.
+Las importaciones, la ingestión de noticias y la cola editorial conservan sus funciones internas en `lib/content/editorial-workflows.ts`, sin exponerlas como herramientas. Para verificar el catálogo consulta `tools/list` desde `/mcp`.
 
 ---
 
@@ -622,7 +687,7 @@ Cuando se agregue o cambie una acción:
 2. abre la configuración del complemento ONKOS;
 3. actualiza o reconecta el complemento;
 4. si no hay opción de actualización, elimínalo y créalo de nuevo usando el mismo túnel;
-5. confirma que ChatGPT muestre las 17 acciones actuales, incluida `publish_news_automated`;
+5. confirma que ChatGPT muestre las 22 acciones actuales, incluidas las cinco nuevas de edición, archivado e imágenes;
 6. realiza la prueba en un chat nuevo.
 
 No es necesario crear un túnel nuevo para actualizar el catálogo de herramientas.

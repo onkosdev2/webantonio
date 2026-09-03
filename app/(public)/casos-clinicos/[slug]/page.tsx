@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
+import { getPublicationGallery } from "@/lib/content/publication-gallery";
 import { getPublishedClinicalCaseBySlug } from "@/lib/content/cases";
 import { formatPublicPublicationDate } from "@/lib/content/public-dates";
 import { getPublicArchiveItems, getRelatedPublicItems } from "@/lib/content/public";
@@ -67,6 +68,7 @@ export default async function CasoClinicoPublicoPage({
       body={item.body}
       publicationDate={publicationDate}
       featuredImage={item.featuredImage}
+      gallery={await getPublicationGallery(item.id)}
       backHref="/casos-clinicos"
       backLabel="Volver a casos"
       editHref={`/panel/casos/${item.slug}`}

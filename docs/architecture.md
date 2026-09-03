@@ -54,13 +54,30 @@ memoria; varias réplicas requieren Redis o un bus de eventos compartido.
 
 ## MCP
 
-`POST /mcp` expone 17 herramientas: ocho de casos clínicos y nueve de noticias.
+`POST /mcp` expone 22 herramientas: diez de casos clínicos, once de noticias y
+una compartida para portada y galería. Las mutaciones viven en
+`lib/content/services`: actualizaciones parciales, control de versión opcional,
+confirmación al editar publicados y archivado lógico. Las nuevas mutaciones
+serializan los cambios de cada publicación mediante un bloqueo de fila.
 La publicación interactiva exige `confirmation=PUBLICAR`. La herramienta
 `publish_news_automated` está reservada para automatizaciones recurrentes
 preautorizadas y ejecuta el flujo idempotente de creación, portada y publicación.
 
-Los endpoints `/api/mcp/*` son una capa administrativa anterior protegida por la
-sesión del panel y no representan el catálogo del complemento de ChatGPT.
+La antigua capa `/api/mcp/*` se retiró; `/panel/mcp` solo informa sobre el servidor.
+Los flujos internos de importación y revisión viven en
+`lib/content/editorial-workflows.ts`. OAuth exige `mcp:read` para consultas y
+además `mcp:write` para llamadas que modifican contenido.
+
+`MediaAsset.isGalleryUpload` marca exclusivamente archivos recibidos por el flujo
+de carga dedicada; `galleryUploadHash` evita duplicar la misma carga dentro de
+una publicación. `galleryOrder` y `caption` ordenan y describen esas cargas.
+Una restricción SQL impide combinarlas con portada, figura o procedencia de IA.
+Los medios anteriores mantienen `isGalleryUpload=false`: no se reclasifican.
+El componente compartido `PublicationGallery` las presenta al final del cuerpo
+en noticias y casos publicados, excluyendo medios sensibles. Sin cargas
+dedicadas no se renderiza carrusel, aunque existan portadas o figuras. Las
+cargas PNG/JPEG/WEBP se validan y recodifican sin EXIF: R2 en producción y
+`public/uploads/publications` en desarrollo. Archivar conserva estos archivos.
 
 ## Producción
 

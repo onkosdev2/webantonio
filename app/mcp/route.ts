@@ -11,7 +11,8 @@ export const maxDuration = 300;
 
 const MODERN_PROTOCOL_VERSION = "2026-07-28";
 const SDK_PROTOCOL_VERSION = "2025-11-25";
-const SERVER_INFO = { name: "onkos-content-publisher", version: "2.1.0" };
+const SERVER_INFO = { name: "onkos-content-publisher", version: "2.2.0" };
+const READ_TOOLS = new Set(["list_recent_clinical_cases", "search_clinical_cases", "get_clinical_case", "list_recent_news", "search_news", "get_news_item", "find_reusable_news_images"]);
 
 function modernRequestVersion(rpcRequest: {
   params?: { _meta?: Record<string, unknown> };
@@ -74,7 +75,7 @@ async function modernizeResponse(
   });
 }
 
-async function isAuthorized(request: Request) {
+async function isAuthorized(request: Request, rpcMethod: string | null, toolName?: string) {
   if (process.env.NODE_ENV !== "production") return true;
   if (process.env.MCP_ALLOW_UNAUTHENTICATED === "true") return true;
   const authorization = request.headers.get("authorization");
@@ -84,7 +85,10 @@ async function isAuthorized(request: Request) {
   const expected = process.env.MCP_API_TOKEN;
   if (expected && token === expected) return true;
 
-  return Boolean(await authorizeMcpBearer(token));
+  const payload = await authorizeMcpBearer(token);
+  if (!payload) return false;
+  const scopes = payload.scope.split(" ");
+  return scopes.includes("mcp:read") && (rpcMethod !== "tools/call" || READ_TOOLS.has(toolName || "") || scopes.includes("mcp:write"));
 }
 
 async function handle(request: Request) {
@@ -103,7 +107,7 @@ async function handle(request: Request) {
 
   let authorized = false;
   try {
-    authorized = await isAuthorized(request);
+    authorized = await isAuthorized(request, rpcMethod, typeof rpcRequest?.params?.name === "string" ? rpcRequest.params.name : undefined);
   } catch (error) {
     console.error("[mcp] authorization failed unexpectedly", {
       httpMethod: request.method,

@@ -112,6 +112,11 @@ export async function createGalleryAssetAction(formData: FormData) {
 export async function updateGalleryAssetAction(id: string, formData: FormData) {
   await requireAdminSession();
 
+  const existing = await db.mediaAsset.findUnique({ where: { id }, select: { isGalleryUpload: true } });
+  if (existing?.isGalleryUpload) {
+    throw new Error("Esta carga pertenece exclusivamente a la galería de una publicación. Usa manage_publication_images para reemplazarla o retirarla; no se puede reasignar desde la biblioteca general.");
+  }
+
   const intent = getText(formData, "intent");
   const basePayload = await buildGalleryPayload(formData);
   const payload = intent === "ai_enrich" ? await enrichGalleryPayload(basePayload) : basePayload;

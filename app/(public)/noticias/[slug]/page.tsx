@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
+import { getPublicationGallery } from "@/lib/content/publication-gallery";
 import { getPublishedNewsItemBySlug } from "@/lib/content/news";
 import { formatPublicPublicationDate } from "@/lib/content/public-dates";
 import { getPublicArchiveItems, getRelatedPublicItems } from "@/lib/content/public";
@@ -73,6 +74,7 @@ export default async function NoticiaPublicaPage({
       body={item.body}
       publicationDate={publicationDate}
       featuredImage={item.featuredImage}
+      gallery={await getPublicationGallery(item.id)}
       backHref="/noticias"
       backLabel="Volver a noticias"
       editHref={`/panel/noticias/${item.slug}`}

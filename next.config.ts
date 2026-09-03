@@ -6,6 +6,7 @@ const scriptSource =
     : "script-src 'self' 'unsafe-inline'";
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   typedRoutes: true,
   devIndicators: false,
   async headers() {

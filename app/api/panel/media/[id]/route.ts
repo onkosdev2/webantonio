@@ -31,6 +31,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!asset) return NextResponse.json({ error: "Imagen no encontrada" }, { status: 404 });
   let updated;
   if (body.action === "feature" && asset.contentId) {
+    if (asset.isGalleryUpload) return NextResponse.json({ error: "Esta imagen se cargó exclusivamente para la galería. Carga la portada por separado." }, { status: 400 });
     const [, featured] = await db.$transaction([
       db.mediaAsset.updateMany({ where: { contentId: asset.contentId }, data: { isFeatured: false } }),
       db.mediaAsset.update({ where: { id }, data: { isFeatured: true } })

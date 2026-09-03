@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { generateDraftWithGlm } from "@/lib/ai/glm";
-import { createDraftViaMcp, queueDraftForReview } from "@/lib/mcp/server";
+import { createEditorialDraft, queueDraftForReview } from "@/lib/content/editorial-workflows";
 
 function getText(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -134,7 +134,7 @@ export async function createAiTaskAction(formData: FormData) {
     draftTags.push("investigacion", "research");
   }
 
-  const created = await createDraftViaMcp({
+  const created = await createEditorialDraft({
     type: draftType,
     title: generated.title,
     summary: generated.summary,

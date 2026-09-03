@@ -871,7 +871,8 @@
     min-height: 280px;
   }
 
-  .relatedGrid {
+  .relatedGrid,
+  .clinicalPage .relatedGrid {
     grid-template-columns: 1fr;
   }
 

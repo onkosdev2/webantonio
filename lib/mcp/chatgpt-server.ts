@@ -1,6 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { archivePublication, archivePublicationSchema, updatePublication, updateClinicalCaseSchema, updateNewsSchema } from "@/lib/content/services/publication-mutations";
+import { managePublicationImages, managePublicationImagesSchema } from "@/lib/content/services/publication-images";
 import {
   configureCaseImages,
   configureImagesSchema,
@@ -90,8 +92,11 @@ function resolveClinicalCaseSearch(query: string, requestedStatus: ClinicalCaseS
 }
 
 export function createChatGptMcpServer() {
-  const server = new McpServer({ name: "onkos-content-publisher", version: "2.1.0" }, {
+  const server = new McpServer({ name: "onkos-content-publisher", version: "2.2.0" }, {
     instructions: [
+      "Para corregir contenido usa update_clinical_case o update_news_item con changes parciales; no recrees la publicación. Mantén el slug y el estado. Recupera updated_at para expectedUpdatedAt. Editar contenido publicado requiere una orden explícita y confirmation=ACTUALIZAR_PUBLICADO.",
+      "Para retirar contenido usa archive_clinical_case o archive_news_item con confirmation=ARCHIVAR solo por orden explícita. El archivado conserva datos y medios; no existe borrado físico en MCP.",
+      "Usa manage_publication_images para la galería final y la portada, con propósitos separados. add_gallery y replace_gallery solo admiten archivos imageBase64 PNG/JPEG/WEBP cargados expresamente por el usuario para la galería, con title y altText: nunca mediaId, portadas ni figuras generadas. No generes imágenes para rellenar la galería; si faltan archivos, pídelos. reorder_gallery/remove_gallery usan exclusivamente IDs de cargas de esa galería. set_featured selecciona featuredMediaId de la publicación (no de galería) o carga una sola imagen de portada en images, sin incorporarla al carrusel. Exige confirmación humana al cargar imágenes clínicas. No sustituyas ni quites imágenes salvo orden del usuario.",
       "Usa list_recent_clinical_cases cuando el usuario pida los últimos, recientes o más nuevos casos sin indicar un término de búsqueda.",
       "Usa search_clinical_cases únicamente cuando exista un texto, diagnóstico o tema que buscar.",
       "Distingue siempre la intención de creación: DRAFT_ONLY o DIRECT_PUBLISH.",
@@ -311,6 +316,37 @@ export function createChatGptMcpServer() {
       ? `Noticia publicada automáticamente: ${value.item.public_url}`
       : `Flujo automático incompleto en ${value.stage}; el borrador se conservó para reintento.`
   ));
+
+  server.registerTool("update_clinical_case", {
+    title: "Actualizar caso clínico",
+    description: "Actualiza campos parciales sin cambiar slug, estado ni imágenes. Requiere anonimización confirmada; los cambios clínicos marcan el plan visual como STALE. Para contenido publicado exige ACTUALIZAR_PUBLICADO.",
+    inputSchema: updateClinicalCaseSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => updatePublication("clinical_case", input), () => "Caso clínico actualizado; revisa cualquier plan visual marcado como STALE."));
+  server.registerTool("archive_clinical_case", {
+    title: "Archivar caso clínico",
+    description: "Retira el caso de la web pública y conserva contenido e imágenes. Requiere confirmation=ARCHIVAR. No borra archivos.",
+    inputSchema: archivePublicationSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => archivePublication("clinical_case", input), () => "Caso archivado; puede recuperarse desde el panel."));
+  server.registerTool("update_news_item", {
+    title: "Actualizar noticia",
+    description: "Actualiza texto, fuente y metadatos sin cambiar slug, estado ni portada. Valida fuente y duplicados. Para contenido publicado exige ACTUALIZAR_PUBLICADO.",
+    inputSchema: updateNewsSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => updatePublication("news_item", input), () => "Noticia actualizada."));
+  server.registerTool("archive_news_item", {
+    title: "Archivar noticia",
+    description: "Retira la noticia de la web y sitemaps, conservando contenido e imágenes. Requiere confirmation=ARCHIVAR.",
+    inputSchema: archivePublicationSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => archivePublication("news_item", input), () => "Noticia archivada; puede recuperarse desde el panel."));
+  server.registerTool("manage_publication_images", {
+    title: "Gestionar portada y galería de publicación",
+    description: "Galería exclusiva de cargas dedicadas: add_gallery/replace_gallery reciben images con imageBase64 PNG/JPEG/WEBP, title y altText; NO admiten mediaId, portadas ni figuras generadas. reorder_gallery/remove_gallery usan mediaIds de esa galería. set_featured cambia solo portada: featuredMediaId ajeno a galería o un archivo en images. Sin cargas de galería no hay carrusel. Conserva originales. Máximo 20 archivos/lote y 30 en galería. Publicados: ACTUALIZAR_PUBLICADO. Cargas clínicas: anonymizedConfirmed=true.",
+    inputSchema: managePublicationImagesSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
+  }, (input) => guarded(() => managePublicationImages(input), (value) => `Imágenes actualizadas; la galería contiene ${value.gallery.length} imágenes.`));
 
   return server;
 }

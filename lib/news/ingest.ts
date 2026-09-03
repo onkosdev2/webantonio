@@ -1,7 +1,7 @@
 import { ImportState } from "@prisma/client";
 import { db } from "@/lib/db";
 import { generateDraftWithGlm } from "@/lib/ai/glm";
-import { createDraftViaMcp, queueDraftForReview } from "@/lib/mcp/server";
+import { createEditorialDraft, queueDraftForReview } from "@/lib/content/editorial-workflows";
 import { newsSources } from "@/lib/news/source-registry";
 import { fetchRssItems, type ParsedFeedItem } from "@/lib/news/rss";
 
@@ -154,7 +154,7 @@ export async function ingestOncologyNews(options: IngestOptions = {}) {
     const tumorType = inferTumorType(`${item.title} ${item.description}`);
     const biomarkers = inferBiomarkers(`${item.title} ${item.description}`);
 
-    const created = await createDraftViaMcp({
+    const created = await createEditorialDraft({
       type: "news_item",
       title: generated.title,
       summary: generated.summary,

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ImportState } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getApiUser } from "@/lib/auth/session";
-import { createDraftViaMcp } from "@/lib/mcp/server";
+import { createEditorialDraft } from "@/lib/content/editorial-workflows";
 import { contentImportSchema } from "@/lib/validation/content";
 
 export async function POST(request: Request) {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const created = await createDraftViaMcp({
+  const created = await createEditorialDraft({
     type: result.data.type,
     title: result.data.title,
     summary: result.data.summary,

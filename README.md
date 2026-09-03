@@ -23,7 +23,7 @@ La base ya está operativa en estas áreas:
 - generación de borradores con `GLM 5.1`
 - importaciones externas con trazabilidad
 - motor de noticias oncológicas por RSS + IA
-- tools y recursos MCP sobre base real, incluyendo investigación como tipo propio
+- catálogo MCP sobre base real para casos clínicos y noticias
 
 ## Módulos principales
 
@@ -88,12 +88,23 @@ migración de datos, R2, variables de entorno y requisitos de autenticación MCP
 - La base principal local usa PostgreSQL 16 dentro de Docker
 - La antigua SQLite se conserva únicamente como respaldo y fuente de migración
 
-## MCP para ChatGPT: casos clínicos
+## MCP para ChatGPT: casos clínicos y noticias
 
 El endpoint estándar es `http://localhost:3000/mcp`. Expone herramientas para
 buscar y revisar casos, crear borradores, configurar entre 3 y 5 figuras,
 generar cada imagen, definir la portada y publicar. La publicación nunca es un
 efecto secundario: exige una llamada separada con la confirmación `PUBLICAR`.
+
+La versión `2.2.0` expone 22 herramientas. Añade edición parcial y archivado
+lógico para ambas entidades, más `manage_publication_images`: agregar,
+reemplazar, ordenar o quitar imágenes del carrusel final y cambiar la portada
+de forma independiente. Las imágenes del carrusel deben cargarse específicamente para esa
+galería: nunca portadas ni figuras generadas o medios existentes. Sin cargas
+dedicadas no aparece carrusel. Editar contenido publicado requiere
+`ACTUALIZAR_PUBLICADO`; archivar requiere `ARCHIVAR`. La antigua capa
+`/api/mcp/*` fue retirada. Consulta los contratos en
+[la guía MCP](docs/GUIA_MCP_ONKOS.md) y las
+[pruebas locales aisladas](mcp/README.md).
 
 Para noticias de Actualidad existe además `publish_news_automated`, reservado para
 automatizaciones recurrentes preautorizadas. Ejecuta crear, generar y asociar portada,

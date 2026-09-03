@@ -90,6 +90,7 @@ function normalizeNewsItem(item: {
   source: string | null;
   sourceUrl: string | null;
   publishedAt?: Date | null;
+  updatedAt?: Date;
   tags?: unknown;
   oncologyData?: { tumorType: string | null; biomarkers: unknown } | null;
   media?: Array<{
@@ -99,6 +100,9 @@ function normalizeNewsItem(item: {
     storagePath: string;
     origin: string;
     isFeatured: boolean;
+    isGalleryUpload?: boolean;
+    galleryOrder?: number | null;
+    caption?: string | null;
   }>;
 }) {
   return {
@@ -108,6 +112,7 @@ function normalizeNewsItem(item: {
     summary: item.summary,
     ...(item.body === undefined ? {} : { body: item.body }),
     status: item.status,
+    updated_at: item.updatedAt?.toISOString() ?? null,
     source_name: item.source ?? "",
     source_url: item.sourceUrl ?? "",
     published_at: item.publishedAt?.toISOString() ?? null,
@@ -120,7 +125,10 @@ function normalizeNewsItem(item: {
       alt_text: asset.altText ?? "",
       image_url: asset.storagePath,
       origin: asset.origin,
-      is_featured: asset.isFeatured
+      is_featured: asset.isFeatured,
+      is_gallery_upload: asset.isGalleryUpload ?? false,
+      gallery_order: asset.isGalleryUpload ? asset.galleryOrder ?? null : null,
+      caption: asset.caption ?? null
     })),
     ...newsUrls(item.slug)
   };
@@ -244,6 +252,7 @@ export async function findReusableNewsImages(input: z.input<typeof reusableNewsI
     where: {
       mediaType: "image",
       isSensitive: false,
+      isGalleryUpload: false,
       OR: searchTerms.flatMap((term) => [
         { title: { contains: term } },
         { altText: { contains: term } },
@@ -280,7 +289,7 @@ export async function attachExistingNewsImage(input: {
     throw new Error("Noticia no encontrada.");
   }
   const sourceAsset = await db.mediaAsset.findUnique({ where: { id: input.mediaId } });
-  if (!sourceAsset || sourceAsset.mediaType !== "image" || sourceAsset.isSensitive) {
+  if (!sourceAsset || sourceAsset.mediaType !== "image" || sourceAsset.isSensitive || sourceAsset.isGalleryUpload) {
     throw new Error("La imagen no existe, no es reutilizable o está marcada como sensible.");
   }
 
@@ -294,7 +303,7 @@ export async function attachExistingNewsImage(input: {
     }
 
     const alreadyAttached = await tx.mediaAsset.findFirst({
-      where: { contentId: content.id, storagePath: sourceAsset.storagePath }
+      where: { contentId: content.id, storagePath: sourceAsset.storagePath, isGalleryUpload: false }
     });
     if (alreadyAttached) {
       return tx.mediaAsset.update({
@@ -408,6 +417,9 @@ async function publishValidatedNews(slug: string, auditSource: string, auditNote
   });
   if (!content || content.type !== ContentType.NEWS_ITEM) {
     throw new Error("Noticia no encontrada.");
+  }
+  if (content.status === ContentStatus.ARCHIVED) {
+    throw new Error("Restaura la noticia archivada desde el panel antes de publicarla.");
   }
   if (!content.source?.trim() || !content.sourceUrl?.trim()) {
     throw new Error("La noticia requiere nombre y URL de la fuente antes de publicarse.");

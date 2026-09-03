@@ -18,6 +18,8 @@
     "db:migrate:sqlite-to-postgres": "prisma generate --schema prisma/schema.sqlite.prisma && prisma generate && node --env-file=.env --env-file-if-exists=.env.local scripts/migrate-sqlite-to-postgres.mjs",
     "db:verify:migration": "node --env-file=.env --env-file-if-exists=.env.local scripts/verify-sqlite-postgres.mjs",
     "db:optimize-news-slugs": "tsx scripts/optimize-news-slugs.ts",
+    "test:mcp:crud": "node --env-file=.env.mcp-local scripts/mcp-crud.mjs",
+    "test:mcp:crud:auth": "node --env-file=.env.mcp-local scripts/mcp-crud-auth.mjs",
     "test:mcp:e2e": "MCP_E2E_CONFIRM=1 node --env-file=.env --env-file-if-exists=.env.local scripts/mcp-e2e.mjs",
     "test:mcp:news": "node --env-file=.env --env-file-if-exists=.env.local scripts/mcp-news-smoke.mjs"
   },

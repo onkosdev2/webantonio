@@ -47,7 +47,7 @@ async function cleanup() {
 try {
   await client.connect(transport);
   const listed = await client.listTools();
-  check(listed.tools.length === 17, "el servidor anuncia las 17 herramientas esperadas");
+  check(listed.tools.length === 22, "el servidor anuncia las 22 herramientas esperadas");
 
   const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
   const draft = structured(await client.callTool({

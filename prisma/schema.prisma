@@ -164,6 +164,10 @@ model MediaAsset {
   mediaType   String
   isSensitive Boolean  @default(false)
   isFeatured  Boolean  @default(false)
+  galleryOrder Int?
+  caption      String?
+  isGalleryUpload Boolean @default(false)
+  galleryUploadHash String?
   origin      String   @default("upload")
   prompt      String?
   model       String?
@@ -172,6 +176,8 @@ model MediaAsset {
 
   content Content?    @relation(fields: [contentId], references: [id], onDelete: SetNull)
   figure  CaseFigure? @relation(fields: [figureId], references: [id], onDelete: SetNull)
+
+  @@index([contentId, galleryOrder])
 }
 
 model CaseVisualPlan {
