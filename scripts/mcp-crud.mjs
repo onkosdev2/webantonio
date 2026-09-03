@@ -35,6 +35,18 @@ try {
   const expected = ["list_recent_clinical_cases", "search_clinical_cases", "get_clinical_case", "create_clinical_case_draft", "configure_case_images", "generate_case_image", "set_case_featured_image", "publish_clinical_case", "list_recent_news", "search_news", "create_news_draft", "find_reusable_news_images", "attach_existing_news_image", "generate_news_image", "get_news_item", "publish_news", "publish_news_automated", "update_clinical_case", "archive_clinical_case", "update_news_item", "archive_news_item", "manage_publication_images"];
   assert.deepEqual(tools.map((tool) => tool.name).sort(), expected.sort());
   check(tools.length === 22, "catálogo exacto de 22 herramientas, sin operaciones heredadas");
+  check(tools.every((tool) => Object.keys(tool.inputSchema.properties || {}).length > 0), "todas las herramientas exponen sus parámetros, sin esquemas vacíos");
+  check(["update_clinical_case", "update_news_item", "archive_clinical_case", "archive_news_item"].every((name) => {
+    const schema = tools.find((tool) => tool.name === name).inputSchema;
+    return schema.required?.includes("slug") && schema.required.includes(name.startsWith("update_") ? "changes" : "confirmation");
+  }), "las herramientas CRUD exponen campos y confirmaciones obligatorias");
+  const imageSchema = tools.find((tool) => tool.name === "manage_publication_images").inputSchema;
+  check(["entity", "slug", "action"].every((field) => imageSchema.required?.includes(field)) && imageSchema.properties.action.enum.length === 5, "gestión de imágenes expone entidad, publicación y cinco acciones");
+  const uploadSchema = imageSchema.properties.images.items;
+  check(["imageBase64", "title", "altText"].every((field) => uploadSchema.required?.includes(field)) && !uploadSchema.properties.mediaId && uploadSchema.additionalProperties === false, "el contrato de galería exige archivos y rechaza mediaId");
+  const modernCatalog = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2026-07-28" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }) });
+  const modernTools = (await modernCatalog.json()).result.tools;
+  check(modernCatalog.ok && JSON.stringify(modernTools.find((tool) => tool.name === "manage_publication_images").inputSchema) === JSON.stringify(imageSchema), "el protocolo moderno también publica el contrato completo de imágenes");
   for (const route of ["tools", "resource", "resources"]) {
     const response = await fetch(new URL(`/api/mcp/${route}`, endpoint), { redirect: "manual" });
     check(response.status === 404, `API heredada ${route} retirada`);

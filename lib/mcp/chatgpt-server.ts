@@ -344,7 +344,9 @@ export function createChatGptMcpServer() {
   server.registerTool("manage_publication_images", {
     title: "Gestionar portada y galería de publicación",
     description: "Galería exclusiva de cargas dedicadas: add_gallery/replace_gallery reciben images con imageBase64 PNG/JPEG/WEBP, title y altText; NO admiten mediaId, portadas ni figuras generadas. reorder_gallery/remove_gallery usan mediaIds de esa galería. set_featured cambia solo portada: featuredMediaId ajeno a galería o un archivo en images. Sin cargas de galería no hay carrusel. Conserva originales. Máximo 20 archivos/lote y 30 en galería. Publicados: ACTUALIZAR_PUBLICADO. Cargas clínicas: anonymizedConfirmed=true.",
-    inputSchema: managePublicationImagesSchema,
+    // The SDK discovers object schemas, not a ZodEffects wrapper. The service
+    // still parses the full schema, including all action-specific refinements.
+    inputSchema: managePublicationImagesSchema.innerType(),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
   }, (input) => guarded(() => managePublicationImages(input), (value) => `Imágenes actualizadas; la galería contiene ${value.gallery.length} imágenes.`));
 
