@@ -122,6 +122,28 @@ y hostname antes de permitirlo. No pegues URLs firmadas, tokens ni credenciales
 en chats, documentación o logs. No autorices dominios porque el modelo los proponga.
 Cambiar esta variable en producción requiere reiniciar/desplegar el servicio.
 
+### Diagnóstico del dominio rechazado en Render
+
+Si la carga devuelve `ATTACHMENT_HOST_NOT_ALLOWED` o
+`ATTACHMENT_HOST_NOT_CONFIGURED`, abre **Render → webantonio → Logs** y busca
+`attachment_host_rejected` después de repetir la carga. Cada rechazo produce
+una línea como esta (dominio ficticio, no un valor para autorizar):
+
+```text
+[mcp] attachment_host_rejected {"code":"ATTACHMENT_HOST_NOT_ALLOWED","hostname":"attachments.example.com"}
+```
+
+Solo se registran el código y el hostname normalizado. No se registran la URL,
+ruta, parámetros firmados, credenciales, ID/nombre del archivo ni metadatos de
+la publicación. Hostnames malformados o mayores de 253 caracteres aparecen como
+`[invalid-hostname]`. Las referencias inválidas no se vuelcan en los logs.
+
+El registro ocurre antes de DNS, descarga o guardado, y no autoriza ese dominio.
+Verifica que el hostname pertenezca al proveedor de la referencia real antes
+de agregarlo a `MCP_ATTACHMENT_ALLOWED_HOSTS`; nunca habilites comodines ni un
+dominio solo porque aparezca en un error. Este diagnóstico no modifica la base
+de datos, las imágenes existentes ni la respuesta pública de la herramienta.
+
 Controles aplicados:
 
 - Solo HTTPS y hosts permitidos; sin credenciales en URL ni puertos alternativos.

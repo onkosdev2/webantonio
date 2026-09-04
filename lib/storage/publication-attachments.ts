@@ -32,6 +32,16 @@ export function isPublicAttachmentAddress(address: string) {
     : family === 6 && globalV6.check(address, "ipv6") && !nonPublic.check(address, "ipv6");
 }
 
+function rejectAttachmentHost(hostname: string, code: "ATTACHMENT_HOST_NOT_CONFIGURED" | "ATTACHMENT_HOST_NOT_ALLOWED", message: string): never {
+  // Log only a bounded DNS hostname, never the URL, signature, file ID or metadata.
+  // One JSON line makes the event searchable in Render without log injection.
+  console.warn(`[mcp] attachment_host_rejected ${JSON.stringify({
+    code,
+    hostname: hostname.length <= 253 && /^[a-z0-9.-]+$/.test(hostname) ? hostname : "[invalid-hostname]"
+  })}`);
+  throw new PublicationImageError(code, message);
+}
+
 function attachmentUrl(file: PublicationAttachment, allowedHosts: string[]) {
   let url: URL;
   try { url = new URL(file.download_url); }
@@ -39,8 +49,8 @@ function attachmentUrl(file: PublicationAttachment, allowedHosts: string[]) {
   if (url.protocol !== "https:" || url.username || url.password || url.hash || (url.port && url.port !== "443") || isIP(url.hostname) || url.hostname.endsWith(".")) {
     throw new PublicationImageError("INVALID_FILE_REFERENCE", "El adjunto requiere una referencia HTTPS temporal, sin credenciales, puertos alternativos ni rutas locales.");
   }
-  if (!allowedHosts.length) throw new PublicationImageError("ATTACHMENT_HOST_NOT_CONFIGURED", "Falta configurar MCP_ATTACHMENT_ALLOWED_HOSTS con los hosts de adjuntos verificados del cliente. No envíes una URL externa ni conviertas manualmente el archivo.");
-  if (!allowedHosts.includes(url.hostname)) throw new PublicationImageError("ATTACHMENT_HOST_NOT_ALLOWED", "El host del adjunto no está autorizado. Usa una referencia del cliente MCP y solicita al administrador verificar su host.");
+  if (!allowedHosts.length) rejectAttachmentHost(url.hostname, "ATTACHMENT_HOST_NOT_CONFIGURED", "Falta configurar MCP_ATTACHMENT_ALLOWED_HOSTS con los hosts de adjuntos verificados del cliente. No envíes una URL externa ni conviertas manualmente el archivo.");
+  if (!allowedHosts.includes(url.hostname)) rejectAttachmentHost(url.hostname, "ATTACHMENT_HOST_NOT_ALLOWED", "El host del adjunto no está autorizado. Usa una referencia del cliente MCP y solicita al administrador verificar su host.");
   return url;
 }
 

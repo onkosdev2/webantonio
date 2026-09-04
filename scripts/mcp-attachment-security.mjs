@@ -23,6 +23,36 @@ for (const url of ["http://attachments.example.com/image.png", "file:///etc/pass
 }
 check(true, "rechaza HTTP, rutas locales, credenciales, puertos, fragmentos y hosts engañosos");
 await rejects(() => createAttachmentDownloader({ ...fixture.dependencies, allowedHosts: () => [] })(file), "ATTACHMENT_HOST_NOT_CONFIGURED", "sin hosts verificados no habilita descargas");
+
+const warnings = [];
+const originalWarn = console.warn;
+let diagnosticDnsCalls = 0;
+const beforeDiagnostics = fixture.calls.length;
+const diagnosticDownload = createAttachmentDownloader({ ...fixture.dependencies, lookup: async (...args) => { diagnosticDnsCalls++; return fixture.dependencies.lookup(...args); } });
+const signedFile = { ...file, download_url: "https://REJECTED.example/private-path-secret.png?sig=signature-secret&token=token-secret", file_id: "file-id-secret", file_name: "filename-secret.png" };
+try {
+  console.warn = (...args) => warnings.push(args);
+  await assert.rejects(() => diagnosticDownload(signedFile), (error) => error.code === "ATTACHMENT_HOST_NOT_ALLOWED" && !error.message.includes("secret"));
+  await assert.rejects(() => createAttachmentDownloader({ ...fixture.dependencies, allowedHosts: () => [] })(signedFile), (error) => error.code === "ATTACHMENT_HOST_NOT_CONFIGURED");
+  const prefix = "[mcp] attachment_host_rejected ";
+  assert.deepEqual(warnings, ["ATTACHMENT_HOST_NOT_ALLOWED", "ATTACHMENT_HOST_NOT_CONFIGURED"].map((code) => [prefix + JSON.stringify({ code, hostname: "rejected.example" })]));
+  check(true, "diagnóstico de host en una línea JSON: solo código y hostname normalizado, sin URL, firma, token, ID ni nombre");
+  check(diagnosticDnsCalls === 0 && fixture.calls.length === beforeDiagnostics, "el diagnóstico no permite DNS ni descargas de hosts rechazados");
+
+  for (const hostname of ["x".repeat(254) + ".example", "invalid_host.example"]) {
+    await assert.rejects(() => diagnosticDownload({ ...signedFile, download_url: `https://${hostname}/private-path-secret?sig=signature-secret` }), (error) => error.code === "ATTACHMENT_HOST_NOT_ALLOWED");
+    assert.deepEqual(warnings.at(-1), [prefix + JSON.stringify({ code: "ATTACHMENT_HOST_NOT_ALLOWED", hostname: "[invalid-hostname]" })]);
+  }
+  check(true, "no registra hostnames malformados ni excesivamente largos");
+  const beforeInvalid = warnings.length;
+  for (const download_url of ["/mnt/data/private-path-secret.png", "https://user:password-secret@rejected.example/image.png", "https://rejected.example%0aFAKE_LOG/image.png"]) {
+    await assert.rejects(() => diagnosticDownload({ ...signedFile, download_url }), (error) => error.code === "INVALID_FILE_REFERENCE");
+  }
+  check(warnings.length === beforeInvalid, "referencias inválidas y credenciales no se vuelcan en los logs");
+  await diagnosticDownload(file);
+  check(warnings.length === beforeInvalid, "las descargas permitidas no generan advertencias de rechazo");
+} finally { console.warn = originalWarn; }
+
 for (const address of ["127.0.0.1", "10.0.0.1", "169.254.169.254", "172.16.0.1", "192.168.0.1", "100.64.0.1", "0.0.0.0", "203.0.113.1", "224.0.0.1", "::1", "fe80::1", "fc00::1", "::ffff:127.0.0.1", "2001:db8::1", "2002:7f00:1::"]) check(!isPublicAttachmentAddress(address), `bloquea dirección no pública ${address}`);
 check(isPublicAttachmentAddress("1.1.1.1") && isPublicAttachmentAddress("2001:4860:4860::8888"), "admite IPv4 e IPv6 públicas");
 const beforeDns = fixture.calls.length;
