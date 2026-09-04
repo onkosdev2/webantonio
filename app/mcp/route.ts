@@ -11,7 +11,7 @@ export const maxDuration = 300;
 
 const MODERN_PROTOCOL_VERSION = "2026-07-28";
 const SDK_PROTOCOL_VERSION = "2025-11-25";
-const SERVER_INFO = { name: "onkos-content-publisher", version: "2.2.0" };
+const SERVER_INFO = { name: "onkos-content-publisher", version: "2.3.0" };
 const READ_TOOLS = new Set(["list_recent_clinical_cases", "search_clinical_cases", "get_clinical_case", "list_recent_news", "search_news", "get_news_item", "find_reusable_news_images"]);
 
 function modernRequestVersion(rpcRequest: {

@@ -38,6 +38,17 @@ try {
   check((await rpc("tools/call", args, readToken)).status === 401, "permiso de lectura no permite archivar");
   check((await db.content.findUnique({ where: { id: content.id } })).status === "DRAFT", "rechazo de permisos no modifica la base");
   check((await rpc("tools/call", args, token("mcp:write"))).status === 401, "escritura también exige permiso de lectura");
+  const attachmentArgs = { name: "manage_publication_images", arguments: {
+    entity: "news_item", slug, action: "add_gallery",
+    files: [{ download_url: "https://unconfigured.example.invalid/test.png", file_id: "local-auth-fixture", mime_type: "image/png", file_name: "test.png" }],
+    images: [{ title: "Adjunto de permisos", altText: "Imagen sintética para probar permisos, sin datos personales." }]
+  } };
+  for (const [bearer, label] of [[undefined, "sin token"], [readToken, "solo lectura"], [token("mcp:write"), "solo escritura"]]) {
+    check((await rpc("tools/call", attachmentArgs, bearer)).status === 401, `adjuntos rechazan ${label} antes del handler`);
+  }
+  const authorizedAttachment = await rpc("tools/call", attachmentArgs, token("mcp:read mcp:write"));
+  check(authorizedAttachment.status === 200 && ["ATTACHMENT_HOST_NOT_CONFIGURED", "ATTACHMENT_HOST_NOT_ALLOWED"].includes(authorizedAttachment.body.result?.structuredContent?.error?.code), "lectura y escritura llegan a validación segura del adjunto sin descargar URLs externas");
+  check(await db.mediaAsset.count({ where: { contentId: content.id } }) === 0, "los rechazos de adjuntos no crean medios");
   check((await rpc("tools/list", {}, token("mcp:read", { resource: "https://example.invalid/mcp" }))).status === 401, "rechaza audiencia incorrecta");
   check((await rpc("tools/list", {}, token("mcp:read", { exp: 1 }))).status === 401, "rechaza token vencido");
   const archived = await rpc("tools/call", args, token("mcp:read mcp:write"));

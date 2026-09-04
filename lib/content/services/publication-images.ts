@@ -1,49 +1,70 @@
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { galleryUploadWhere, isGalleryUpload } from "@/lib/content/gallery-policy";
-import { decodePublicationImage, storePublicationImage } from "@/lib/storage/publication-images";
-import { assertClinicalPrivacy, assertPublicationEditable, lockPublication, publicationEntitySchema, publicationResult, revalidatePublication } from "./publication-mutations";
+import { resolvePublicationImage, storePublicationImage } from "@/lib/storage/publication-images";
+import { publicationAttachmentSchema, type AttachmentDownloader } from "@/lib/storage/publication-attachments";
+import { MAX_PUBLICATION_BATCH_BYTES, PublicationImageError } from "@/lib/storage/publication-image-errors";
+import { assertClinicalPrivacy, assertPublicationEditable, lockPublication, publicationEntitySchema, publicationResult, publicationType, revalidatePublication } from "./publication-mutations";
 
 // A gallery accepts files uploaded for that purpose, never IDs or generated assets.
 const imageInputSchema = z.object({
-  imageBase64: z.string().min(4).max(14_000_000).describe("Archivo PNG/JPEG/WEBP cargado expresamente para esta acción. No acepta mediaId, rutas ni URLs."),
+  file: publicationAttachmentSchema.optional().describe("Referencia de adjunto para clientes MCP que la envían en cada imagen. ChatGPT debe usar files en el primer nivel."),
+  imageBase64: z.string().min(4).max(14_000_000).optional().describe("Compatibilidad con clientes antiguos. No pedir al modelo que convierta adjuntos a Base64. Si también hay file, los bytes deben coincidir."),
   title: z.string().trim().min(3).max(250),
   altText: z.string().trim().min(10).max(1000),
   caption: z.string().trim().max(2000).optional()
 }).strict();
 
-export const managePublicationImagesSchema = z.object({
+// Expose the object itself to MCP: an outer ZodEffects wrapper produces an empty catalog.
+export const managePublicationImagesInputSchema = z.object({
   entity: publicationEntitySchema,
   slug: z.string().min(1),
   action: z.enum(["add_gallery", "replace_gallery", "set_featured", "reorder_gallery", "remove_gallery"]),
-  images: z.array(imageInputSchema).min(1).max(20).optional(),
+  files: z.array(publicationAttachmentSchema).min(1).max(20, "Máximo 20 archivos por operación.").optional().describe("Adjuntos suministrados directamente por ChatGPT; files[i] corresponde a images[i]. No escribir ni inventar download_url."),
+  images: z.array(imageInputSchema).min(1).max(20, "Máximo 20 imágenes por operación.").optional(),
   mediaIds: z.array(z.string().min(1)).min(1).max(30).optional(),
   featuredMediaId: z.string().min(1).optional(),
-  anonymizedConfirmed: z.literal(true).optional().describe("Obligatorio al cargar archivos a un caso clínico; confirma revisión humana y ausencia de identificadores."),
+  anonymizedConfirmed: z.literal(true, { errorMap: () => ({ message: "clinical_case requiere anonymizedConfirmed=true tras revisión humana de las imágenes." }) }).optional().describe("Obligatorio al cargar archivos a un caso clínico; confirma revisión humana y ausencia de identificadores."),
   confirmation: z.literal("ACTUALIZAR_PUBLICADO").optional(),
   expectedUpdatedAt: z.string().datetime({ offset: true }).optional()
-}).strict().superRefine((data, ctx) => {
+}).strict();
+
+export const managePublicationImagesSchema = managePublicationImagesInputSchema.superRefine((data, ctx) => {
   const galleryUpload = ["add_gallery", "replace_gallery"].includes(data.action);
   const ordering = ["reorder_gallery", "remove_gallery"].includes(data.action);
   const validAction = galleryUpload
     ? Boolean(data.images) && !data.mediaIds && !data.featuredMediaId
     : ordering
-      ? Boolean(data.mediaIds) && !data.images && !data.featuredMediaId
-      : !data.mediaIds && (data.featuredMediaId ? !data.images : data.images?.length === 1);
-  if (!validAction) ctx.addIssue({ code: "custom", message: "Galería: images con archivos nuevos. Ordenar/quitar: mediaIds de la galería. Portada: featuredMediaId o un solo archivo en images, nunca ambos." });
+      ? Boolean(data.mediaIds) && !data.images && !data.files && !data.featuredMediaId
+      : !data.mediaIds && (data.featuredMediaId ? !data.images && !data.files : data.images?.length === 1);
+  if (!validAction) ctx.addIssue({ code: "custom", message: "Archivo no recibido o acción inválida. Galería: images con archivos nuevos (files, file o imageBase64). Ordenar/quitar: mediaIds de la galería. Portada: featuredMediaId o una imagen, nunca ambos." });
+  if (data.files && data.files.length !== data.images?.length) ctx.addIssue({ code: "custom", path: ["files"], message: "Cada adjunto de files debe tener sus metadatos en images, en el mismo orden y sin elementos sobrantes." });
+  for (const [index, image] of (data.images || []).entries()) {
+    if (data.files && image.file) ctx.addIssue({ code: "custom", path: ["images", index, "file"], message: "Usa files o images[].file, no ambos canales en la misma operación." });
+    if (!data.files?.[index] && !image.file && image.imageBase64 === undefined) ctx.addIssue({ code: "custom", path: ["images", index], message: "Archivo no recibido. Adjunta el archivo; imageBase64 solo es necesario para clientes antiguos." });
+  }
   if (data.images && data.entity === "clinical_case" && !data.anonymizedConfirmed) ctx.addIssue({ code: "custom", message: "Confirma anonymizedConfirmed=true tras revisar todas las imágenes clínicas." });
   if (data.mediaIds && new Set(data.mediaIds).size !== data.mediaIds.length) ctx.addIssue({ code: "custom", message: "mediaIds no puede contener duplicados." });
-  if ((data.images || []).reduce((sum, item) => sum + item.imageBase64.length, 0) > 28_000_000) ctx.addIssue({ code: "custom", message: "El lote no puede superar 20 MB de archivos." });
+  if ((data.images || []).reduce((sum, item) => sum + (item.imageBase64?.length ?? 0), 0) > 28_000_000) ctx.addIssue({ code: "custom", message: "El lote no puede superar 20 MB de archivos." });
 });
 
-export async function managePublicationImages(input: unknown) {
+export type PublicationImagesOptions = { downloadAttachment?: AttachmentDownloader; revalidate?: typeof revalidatePublication };
+
+export async function managePublicationImages(input: unknown, options: PublicationImagesOptions = {}) {
   const data = managePublicationImagesSchema.parse(input);
   if (data.entity === "clinical_case" && data.images) assertClinicalPrivacy(data.images.map(({ title, altText, caption }) => ({ title, altText, caption })));
-  const decoded = await Promise.all((data.images || []).map(async (item) => {
-    const bytes = await decodePublicationImage(item.imageBase64);
-    return { bytes, hash: createHash("sha256").update(bytes).digest("hex") };
-  }));
+  // Check publication authorization before downloading or processing any attachment.
+  // The locked transaction below checks again to guard concurrent changes.
+  const target = await db.content.findUnique({ where: { slug: data.slug }, select: { id: true, type: true, status: true, updatedAt: true } });
+  if (!target || target.type !== publicationType(data.entity)) throw new PublicationImageError("PUBLICATION_NOT_FOUND", data.entity === "clinical_case" ? "Caso clínico no encontrado." : "Noticia no encontrada.");
+  assertPublicationEditable(target, data);
+  const decoded: Awaited<ReturnType<typeof resolvePublicationImage>>[] = [];
+  let inputBytes = 0;
+  for (const [index, item] of (data.images || []).entries()) {
+    const file = await resolvePublicationImage({ ...item, file: data.files?.[index] ?? item.file }, options.downloadAttachment, MAX_PUBLICATION_BATCH_BYTES - inputBytes);
+    inputBytes += file.inputBytes;
+    decoded.push(file);
+  }
   if (new Set(decoded.map((file) => file.hash)).size !== decoded.length) throw new Error("El lote contiene la misma imagen más de una vez.");
 
   const result = await db.$transaction(async (tx) => {
@@ -53,6 +74,8 @@ export async function managePublicationImages(input: unknown) {
     const uploads = current.filter(isGalleryUpload);
     const gallery = uploads.filter((asset) => asset.galleryOrder !== null);
     const ids = data.mediaIds || [];
+    const addedIds: string[] = [];
+    const updatedIds: string[] = [];
     if (ids.some((id) => !gallery.some((asset) => asset.id === id))) throw new Error("Los IDs deben ser cargas específicas de la galería de esta publicación, no portadas ni figuras.");
     if (data.action === "reorder_gallery" && ids.length !== gallery.length) throw new Error("Indica todos los identificadores de la galería exactamente una vez.");
 
@@ -65,6 +88,7 @@ export async function managePublicationImages(input: unknown) {
         const { title, altText, caption } = data.images[0];
         const storagePath = await storePublicationImage(decoded[0].bytes);
         asset = await tx.mediaAsset.create({ data: { title, altText, caption, storagePath, contentId: content.id, mediaType: "image", origin: "upload", isFeatured: false, isGalleryUpload: false } });
+        addedIds.push(asset.id);
       }
       if (!asset) throw new Error("La portada debe ser una imagen de la publicación, nunca una carga exclusiva de galería. También puedes cargar un archivo de portada directamente.");
       await tx.mediaAsset.updateMany({ where: { contentId: content.id, isGalleryUpload: false }, data: { isFeatured: false } });
@@ -80,7 +104,7 @@ export async function managePublicationImages(input: unknown) {
     } else {
       const remaining = data.action === "replace_gallery" ? new Set<string>() : new Set(gallery.map((asset) => asset.galleryUploadHash!));
       for (const file of decoded) remaining.add(file.hash);
-      if (remaining.size > 30) throw new Error("La galería admite hasta 30 imágenes. Quita algunas antes de agregar más.");
+      if (remaining.size > 30) throw new PublicationImageError("GALLERY_FULL", "La galería admite hasta 30 imágenes. Quita algunas antes de agregar más.");
       if (data.action === "replace_gallery") await tx.mediaAsset.updateMany({ where: { contentId: content.id, isGalleryUpload: true }, data: { galleryOrder: null } });
       let position = data.action === "replace_gallery" ? 0 : Math.max(-1, ...gallery.map((asset) => asset.galleryOrder!)) + 1;
       for (const [index, image] of (data.images || []).entries()) {
@@ -89,10 +113,14 @@ export async function managePublicationImages(input: unknown) {
         const existing = uploads.find((asset) => asset.galleryUploadHash === file.hash);
         const order = data.action === "add_gallery" && existing?.galleryOrder !== null && existing?.galleryOrder !== undefined ? existing.galleryOrder : position++;
         const fields = { title: image.title, altText: image.altText, caption: image.caption ?? existing?.caption ?? null, galleryOrder: order };
-        if (existing) await tx.mediaAsset.update({ where: { id: existing.id }, data: fields });
+        if (existing) {
+          await tx.mediaAsset.update({ where: { id: existing.id }, data: fields });
+          updatedIds.push(existing.id);
+        }
         else {
           const storagePath = await storePublicationImage(file.bytes);
-          await tx.mediaAsset.create({ data: { ...fields, contentId: content.id, storagePath, mediaType: "image", isSensitive: false, isFeatured: false, origin: "upload", isGalleryUpload: true, galleryUploadHash: file.hash } });
+          const created = await tx.mediaAsset.create({ data: { ...fields, contentId: content.id, storagePath, mediaType: "image", isSensitive: false, isFeatured: false, origin: "upload", isGalleryUpload: true, galleryUploadHash: file.hash } });
+          addedIds.push(created.id);
         }
       }
     }
@@ -101,9 +129,18 @@ export async function managePublicationImages(input: unknown) {
       tx.mediaAsset.findMany({ where: { ...galleryUploadWhere, contentId: content.id, galleryOrder: { not: null } }, orderBy: [{ galleryOrder: "asc" }, { createdAt: "asc" }] }),
       tx.mediaAsset.findFirst({ where: { contentId: content.id, mediaType: "image", isSensitive: false, isFeatured: true, isGalleryUpload: false } })
     ]);
-    return { ...publicationResult(saved, data.entity), action: data.action, featured_media_id: cover?.id ?? null,
-      gallery: assets.map((asset) => ({ id: asset.id, image_url: asset.storagePath, alt_text: asset.altText, caption: asset.caption, position: asset.galleryOrder, origin: asset.origin })) };
+    const describe = (asset: (typeof assets)[number], position: number | null) => ({ mediaId: asset.id, title: asset.title, altText: asset.altText, url: asset.storagePath, position });
+    const detailed = assets.map((asset, index) => describe(asset, index + 1));
+    const featuredImage = cover ? describe(cover, null) : null;
+    const affected = [...detailed, ...(featuredImage ? [featuredImage] : [])];
+    return { ...publicationResult(saved, data.entity), success: true, operationStatus: "completed" as const,
+      action: data.action, featured_media_id: cover?.id ?? null, featuredImage, galleryCount: assets.length,
+      added: affected.filter((asset) => addedIds.includes(asset.mediaId)),
+      updated: affected.filter((asset) => updatedIds.includes(asset.mediaId)),
+      removed: gallery.filter((asset) => !assets.some((current) => current.id === asset.id)).map((asset) => describe(asset, null)),
+      // Preserve legacy field names and zero-based positions; new result lists use 1-based positions.
+      gallery: assets.map((asset) => ({ id: asset.id, title: asset.title, image_url: asset.storagePath, alt_text: asset.altText, caption: asset.caption, position: asset.galleryOrder, origin: asset.origin })) };
   }, { timeout: 60_000 });
-  revalidatePublication(data.entity, data.slug);
+  (options.revalidate ?? revalidatePublication)(data.entity, data.slug);
   return result;
 }

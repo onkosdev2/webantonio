@@ -95,7 +95,7 @@ buscar y revisar casos, crear borradores, configurar entre 3 y 5 figuras,
 generar cada imagen, definir la portada y publicar. La publicación nunca es un
 efecto secundario: exige una llamada separada con la confirmación `PUBLICAR`.
 
-La versión `2.2.0` expone 22 herramientas. Añade edición parcial y archivado
+La versión `2.3.0` expone 22 herramientas. Incluye edición parcial y archivado
 lógico para ambas entidades, más `manage_publication_images`: agregar,
 reemplazar, ordenar o quitar imágenes del carrusel final y cambiar la portada
 de forma independiente. Las imágenes del carrusel deben cargarse específicamente para esa
@@ -105,6 +105,12 @@ dedicadas no aparece carrusel. Editar contenido publicado requiere
 `/api/mcp/*` fue retirada. Consulta los contratos en
 [la guía MCP](docs/GUIA_MCP_ONKOS.md) y las
 [pruebas locales aisladas](mcp/README.md).
+
+La gestión de imágenes admite referencias de adjuntos del cliente en `files`,
+con metadatos en `images`, sin pedir conversiones Base64 al modelo. Mantiene
+`imageBase64` para clientes antiguos. Las descargas requieren configurar hosts
+verificados en `MCP_ATTACHMENT_ALLOWED_HOSTS`; consulta el
+[contrato y las limitaciones de adjuntos](docs/MCP_IMAGE_ATTACHMENTS.md).
 
 Para noticias de Actualidad existe además `publish_news_automated`, reservado para
 automatizaciones recurrentes preautorizadas. Ejecuta crear, generar y asociar portada,

@@ -20,6 +20,8 @@
     "db:optimize-news-slugs": "tsx scripts/optimize-news-slugs.ts",
     "test:mcp:crud": "node --env-file=.env.mcp-local scripts/mcp-crud.mjs",
     "test:mcp:crud:auth": "node --env-file=.env.mcp-local scripts/mcp-crud-auth.mjs",
+    "test:mcp:images": "node --env-file=.env.mcp-local --import tsx scripts/mcp-image-attachments.mjs",
+    "test:mcp:images:security": "node --import tsx scripts/mcp-attachment-security.mjs",
     "test:mcp:e2e": "MCP_E2E_CONFIRM=1 node --env-file=.env --env-file-if-exists=.env.local scripts/mcp-e2e.mjs",
     "test:mcp:news": "node --env-file=.env --env-file-if-exists=.env.local scripts/mcp-news-smoke.mjs"
   },

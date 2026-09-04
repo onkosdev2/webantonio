@@ -2,7 +2,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { archivePublication, archivePublicationSchema, updatePublication, updateClinicalCaseSchema, updateNewsSchema } from "@/lib/content/services/publication-mutations";
-import { managePublicationImages, managePublicationImagesSchema } from "@/lib/content/services/publication-images";
+import { managePublicationImages, managePublicationImagesInputSchema, type PublicationImagesOptions } from "@/lib/content/services/publication-images";
+import { PublicationImageError } from "@/lib/storage/publication-image-errors";
 import {
   configureCaseImages,
   configureImagesSchema,
@@ -91,12 +92,12 @@ function resolveClinicalCaseSearch(query: string, requestedStatus: ClinicalCaseS
   return { searchText, status };
 }
 
-export function createChatGptMcpServer() {
-  const server = new McpServer({ name: "onkos-content-publisher", version: "2.2.0" }, {
+export function createChatGptMcpServer(options: { publicationImages?: PublicationImagesOptions } = {}) {
+  const server = new McpServer({ name: "onkos-content-publisher", version: "2.3.0" }, {
     instructions: [
       "Para corregir contenido usa update_clinical_case o update_news_item con changes parciales; no recrees la publicación. Mantén el slug y el estado. Recupera updated_at para expectedUpdatedAt. Editar contenido publicado requiere una orden explícita y confirmation=ACTUALIZAR_PUBLICADO.",
       "Para retirar contenido usa archive_clinical_case o archive_news_item con confirmation=ARCHIVAR solo por orden explícita. El archivado conserva datos y medios; no existe borrado físico en MCP.",
-      "Usa manage_publication_images para la galería final y la portada, con propósitos separados. add_gallery y replace_gallery solo admiten archivos imageBase64 PNG/JPEG/WEBP cargados expresamente por el usuario para la galería, con title y altText: nunca mediaId, portadas ni figuras generadas. No generes imágenes para rellenar la galería; si faltan archivos, pídelos. reorder_gallery/remove_gallery usan exclusivamente IDs de cargas de esa galería. set_featured selecciona featuredMediaId de la publicación (no de galería) o carga una sola imagen de portada en images, sin incorporarla al carrusel. Exige confirmación humana al cargar imágenes clínicas. No sustituyas ni quites imágenes salvo orden del usuario.",
+      "Usa manage_publication_images para la galería final y la portada, con propósitos separados. En ChatGPT envía los adjuntos mediante files y los metadatos title/altText/caption mediante images en el mismo orden. El cliente proporciona las referencias temporales: no inventes download_url ni file_id y nunca conviertas manualmente un adjunto a Base64. Otros clientes pueden usar images[].file; imageBase64 solo se conserva para clientes antiguos. add_gallery y replace_gallery solo admiten archivos PNG/JPEG/WEBP cargados expresamente para la galería: nunca mediaId, portadas ni figuras generadas. No generes imágenes para rellenarla; si faltan archivos, pídelos. reorder_gallery/remove_gallery usan exclusivamente IDs de esa galería. set_featured selecciona featuredMediaId de la publicación, ajeno a galería, o carga una sola portada, sin incorporarla al carrusel. Exige confirmación humana al cargar imágenes clínicas. No sustituyas ni quites imágenes salvo orden del usuario.",
       "Usa list_recent_clinical_cases cuando el usuario pida los últimos, recientes o más nuevos casos sin indicar un término de búsqueda.",
       "Usa search_clinical_cases únicamente cuando exista un texto, diagnóstico o tema que buscar.",
       "Distingue siempre la intención de creación: DRAFT_ONLY o DIRECT_PUBLISH.",
@@ -343,12 +344,20 @@ export function createChatGptMcpServer() {
   }, (input) => guarded(() => archivePublication("news_item", input), () => "Noticia archivada; puede recuperarse desde el panel."));
   server.registerTool("manage_publication_images", {
     title: "Gestionar portada y galería de publicación",
-    description: "Galería exclusiva de cargas dedicadas: add_gallery/replace_gallery reciben images con imageBase64 PNG/JPEG/WEBP, title y altText; NO admiten mediaId, portadas ni figuras generadas. reorder_gallery/remove_gallery usan mediaIds de esa galería. set_featured cambia solo portada: featuredMediaId ajeno a galería o un archivo en images. Sin cargas de galería no hay carrusel. Conserva originales. Máximo 20 archivos/lote y 30 en galería. Publicados: ACTUALIZAR_PUBLICADO. Cargas clínicas: anonymizedConfirmed=true.",
-    // The SDK discovers object schemas, not a ZodEffects wrapper. The service
-    // still parses the full schema, including all action-specific refinements.
-    inputSchema: managePublicationImagesSchema.innerType(),
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
-  }, (input) => guarded(() => managePublicationImages(input), (value) => `Imágenes actualizadas; la galería contiene ${value.gallery.length} imágenes.`));
+    description: "Gestiona cargas dedicadas y portada por separado. ChatGPT: files recibe adjuntos y images sus title/altText/caption en el mismo orden, sin conversión manual a Base64. Otros clientes: images[].file; imageBase64 sigue compatible. No acepta URLs externas arbitrarias ni mediaId para agregar/reemplazar. reorder_gallery/remove_gallery: mediaIds de galería. set_featured: featuredMediaId ajeno a galería o una carga. PNG/JPEG/WEBP, 10 MB/archivo, 20 MB/lote, 20 archivos/lote, 30 imágenes/galería. Conserva archivos existentes; publica copias sin metadatos. Publicados: ACTUALIZAR_PUBLICADO. Cargas clínicas: anonymizedConfirmed=true.",
+    inputSchema: managePublicationImagesInputSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+    _meta: { "openai/fileParams": ["files"] }
+  }, async (input) => {
+    try {
+      const value = await managePublicationImages(input, options.publicationImages);
+      return ok(value, `Operación ${value.action} completada: ${value.added.length} imágenes nuevas; ${value.galleryCount} imágenes en la galería.`);
+    } catch (error) {
+      const code = error instanceof PublicationImageError ? error.code : error instanceof z.ZodError ? "INVALID_IMAGE_ARGUMENTS" : "IMAGE_OPERATION_FAILED";
+      const message = error instanceof z.ZodError ? error.issues.map((issue) => issue.message).join(" ") : error instanceof Error ? error.message : "No se pudo completar la carga de imágenes.";
+      return { isError: true, content: [{ type: "text" as const, text: message }], structuredContent: { success: false, error: { code, message } } };
+    }
+  });
 
   return server;
 }

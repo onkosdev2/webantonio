@@ -43,10 +43,13 @@ try {
   const imageSchema = tools.find((tool) => tool.name === "manage_publication_images").inputSchema;
   check(["entity", "slug", "action"].every((field) => imageSchema.required?.includes(field)) && imageSchema.properties.action.enum.length === 5, "gestión de imágenes expone entidad, publicación y cinco acciones");
   const uploadSchema = imageSchema.properties.images.items;
-  check(["imageBase64", "title", "altText"].every((field) => uploadSchema.required?.includes(field)) && !uploadSchema.properties.mediaId && uploadSchema.additionalProperties === false, "el contrato de galería exige archivos y rechaza mediaId");
+  check(["title", "altText"].every((field) => uploadSchema.required?.includes(field)) && !uploadSchema.required.includes("imageBase64") && uploadSchema.properties.file && uploadSchema.properties.imageBase64 && !uploadSchema.properties.mediaId && uploadSchema.additionalProperties === false, "el contrato de galería acepta adjuntos o Base64 compatible y rechaza mediaId");
+  const fileSchema = imageSchema.properties.files.items;
+  check(["download_url", "file_id", "mime_type", "file_name"].every((field) => fileSchema.properties[field]) && JSON.stringify([...fileSchema.required].sort()) === JSON.stringify(["download_url", "file_id"]), "los adjuntos declaran el contrato oficial de ChatGPT con MIME y nombre opcionales");
   const modernCatalog = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2026-07-28" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }) });
   const modernTools = (await modernCatalog.json()).result.tools;
   check(modernCatalog.ok && JSON.stringify(modernTools.find((tool) => tool.name === "manage_publication_images").inputSchema) === JSON.stringify(imageSchema), "el protocolo moderno también publica el contrato completo de imágenes");
+  check(JSON.stringify(modernTools.find((tool) => tool.name === "manage_publication_images")._meta?.["openai/fileParams"]) === JSON.stringify(["files"]), "el transporte moderno conserva openai/fileParams");
   for (const route of ["tools", "resource", "resources"]) {
     const response = await fetch(new URL(`/api/mcp/${route}`, endpoint), { redirect: "manual" });
     check(response.status === 404, `API heredada ${route} retirada`);

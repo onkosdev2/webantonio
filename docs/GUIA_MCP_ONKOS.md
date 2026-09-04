@@ -7,7 +7,7 @@ El MCP de ONKOS conecta ChatGPT con el archivo editorial de casos clínicos y no
 El servidor conectado a ChatGPT se identifica como:
 
 - Nombre técnico: `onkos-content-publisher`
-- Versión actual: `2.2.0`
+- Versión actual: `2.3.0`
 - Endpoint local: `http://localhost:3000/mcp`
 - Transporte: Streamable HTTP con OAuth en producción; túnel opcional en local
 - Número de acciones del catálogo: 22
@@ -372,13 +372,13 @@ Gestiona portada y galería para `entity: "clinical_case"` o `"news_item"` y un 
 
 | `action` | Parámetro | Uso |
 | --- | --- | --- |
-| `add_gallery` | `images` | Carga archivos expresamente para la galería sin reemplazar las cargas anteriores. |
-| `replace_gallery` | `images` | Redefine la galería con los archivos cargados y el orden indicados. |
+| `add_gallery` | `files` + `images` | Carga archivos expresamente para la galería sin reemplazar las cargas anteriores. |
+| `replace_gallery` | `files` + `images` | Redefine la galería con los archivos cargados y el orden indicados. |
 | `set_featured` | `featuredMediaId` o un archivo en `images` | Selecciona una imagen de la publicación que no sea de galería, o carga una portada directamente. |
 | `reorder_gallery` | `mediaIds` | Ordena todos los IDs de la galería, una sola vez cada uno. |
 | `remove_gallery` | `mediaIds` | Quita imágenes de la galería sin borrar archivos ni cambiar la portada. |
 
-Cada entrada de `images` requiere `imageBase64` (archivo real PNG/JPEG/WEBP), `title` y `altText`; `caption` es opcional. **No admite `mediaId`, rutas ni URLs.** La galería acepta únicamente cargas realizadas para ese propósito: nunca incorpora ni reutiliza portadas, figuras generadas o imágenes existentes en la publicación o biblioteca. Si no hay archivos aportados para galería, no se generan sustitutos y no aparece carrusel. Los `mediaIds` de ordenar/quitar solo identifican cargas previas de esa misma galería.
+Cada entrada de `images` requiere `title` y `altText`; `caption` es opcional. ChatGPT aporta los archivos PNG/JPEG/WEBP en `files`, en el mismo orden que `images`, mediante referencias del cliente. Otros clientes pueden enviar `images[].file`. Se conserva `images[].imageBase64` opcional para compatibilidad: nunca se pide al modelo convertir un adjunto. **No admite `mediaId`, rutas locales ni URLs externas arbitrarias para agregar/reemplazar.** La galería acepta únicamente cargas realizadas para ese propósito: nunca incorpora ni reutiliza portadas, figuras generadas o imágenes existentes en la publicación o biblioteca. Si no hay archivos aportados para galería, no se generan sustitutos y no aparece carrusel. Los `mediaIds` de ordenar/quitar solo identifican cargas previas de esa misma galería.
 
 Para cargar archivos a casos se exige `anonymizedConfirmed: true` tras revisar visualmente su anonimización. El servidor elimina metadatos EXIF, pero no detecta identificadores escritos dentro de los píxeles. La procedencia de un archivo externo requiere revisión humana; no se intenta inferir mediante sus píxeles si fue creado con IA.
 
@@ -387,9 +387,16 @@ Para cargar archivos a casos se exige `anonymizedConfirmed: true` tras revisar v
   "entity": "news_item",
   "slug": "noticia-ejemplo",
   "action": "add_gallery",
+  "files": [
+    {
+      "download_url": "<REFERENCIA_HTTPS_TEMPORAL_DEL_CLIENTE>",
+      "file_id": "<ID_DEL_ADJUNTO_DEL_CLIENTE>",
+      "mime_type": "image/png",
+      "file_name": "imagen.png"
+    }
+  ],
   "images": [
     {
-      "imageBase64": "<BASE64_DEL_ARCHIVO_APORTADO>",
       "title": "Imagen aportada para galería",
       "altText": "Descripción accesible de la imagen aportada",
       "caption": "Imagen complementaria de la publicación"
@@ -398,7 +405,7 @@ Para cargar archivos a casos se exige `anonymizedConfirmed: true` tras revisar v
 }
 ```
 
-El marcador del ejemplo debe sustituirse por bytes reales, no enviarse literalmente. La respuesta devuelve IDs y posiciones de la galería y `featured_media_id`. Para subir una portada usa directamente `action: "set_featured"` e `images: [{imageBase64, title, altText}]` con un solo archivo. No pasa por la galería. También puedes elegir `featuredMediaId` de una imagen de la publicación, pero no de una carga de galería. Las dos finalidades no se convierten una en otra.
+Los marcadores deben sustituirse por referencias reales suministradas por el cliente, nunca inventarse ni enviarse literalmente. El contrato oficial de ChatGPT exige `files` en el primer nivel con `_meta["openai/fileParams"]`; consulta el [schema, la configuración y las limitaciones de transporte](MCP_IMAGE_ATTACHMENTS.md). La respuesta incluye `success`, `added`, `updated`, `removed`, `galleryCount`, `featuredImage` y los campos anteriores `gallery`/`featured_media_id`. Para subir una portada usa `action: "set_featured"`, un adjunto en `files` y sus metadatos en `images`. También sigue funcionando una sola imagen Base64. No pasa por la galería. Puedes elegir `featuredMediaId` de una imagen de la publicación, pero no de una carga de galería. Las dos finalidades no se convierten una en otra.
 
 Límites: 10 MB por archivo, 20 MB por lote, 20 imágenes por llamada y 30 en la galería. No se reutilizan imágenes existentes, sensibles ni de otra publicación. No se descargan URLs arbitrarias. En contenido publicado se requiere `ACTUALIZAR_PUBLICADO`; también acepta `expectedUpdatedAt`.
 
