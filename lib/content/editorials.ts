@@ -1,5 +1,10 @@
 import { ContentStatus, ContentType } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
+import {
+  publicContentCacheOptions,
+  revivePublicationDates
+} from "@/lib/content/public-cache";
 
 function toArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -30,11 +35,21 @@ export async function getEditorials() {
   }));
 }
 
-export async function getPublishedEditorials() {
+async function queryPublishedEditorials() {
   const items = await db.content.findMany({
     where: {
       type: ContentType.EDITORIAL,
       status: ContentStatus.PUBLISHED
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      source: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true
     },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }]
   });
@@ -49,6 +64,16 @@ export async function getPublishedEditorials() {
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   }));
+}
+
+const getCachedPublishedEditorials = unstable_cache(
+  queryPublishedEditorials,
+  ["published-editorials-list-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedEditorials() {
+  return (await getCachedPublishedEditorials()).map(revivePublicationDates);
 }
 
 export async function getEditorialBySlug(slug: string) {
@@ -72,12 +97,23 @@ export async function getEditorialBySlug(slug: string) {
   };
 }
 
-export async function getPublishedEditorialBySlug(slug: string) {
+async function queryPublishedEditorialBySlug(slug: string) {
   const item = await db.content.findFirst({
     where: {
       slug,
       type: ContentType.EDITORIAL,
       status: ContentStatus.PUBLISHED
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      body: true,
+      source: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true
     }
   });
 
@@ -96,6 +132,17 @@ export async function getPublishedEditorialBySlug(slug: string) {
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   };
+}
+
+const getCachedPublishedEditorialBySlug = unstable_cache(
+  queryPublishedEditorialBySlug,
+  ["published-editorial-detail-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedEditorialBySlug(slug: string) {
+  const item = await getCachedPublishedEditorialBySlug(slug);
+  return item ? revivePublicationDates(item) : null;
 }
 
 export async function getEditorialStats() {

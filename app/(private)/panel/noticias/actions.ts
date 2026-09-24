@@ -9,6 +9,7 @@ import { generateDraftWithGlm, refineDraftWithGlm } from "@/lib/ai/glm";
 import { ingestOncologyNews } from "@/lib/news/ingest";
 import { splitCommaSeparated } from "@/lib/content/cases";
 import { buildSeoNewsSlug } from "@/lib/content/news-seo";
+import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 import {
   getFormText,
   resolveEditorialStatus,
@@ -93,6 +94,7 @@ async function generateNewsDraft(payload: ReturnType<typeof buildPayload>, aiTon
 }
 
 function revalidateNewsPaths(previousSlug: string, nextSlug: string) {
+  revalidatePublicContentCache();
   revalidatePath("/");
   revalidatePath("/panel");
   revalidatePath("/panel/noticias");

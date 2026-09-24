@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { findPersonalIdentifierRisks } from "@/lib/ai/privacy";
 import { generateCaseImages, type ImageAspectRatio, type ImageProvider } from "@/lib/ai/nvidia-images";
 import { resolveUniqueContentSlug } from "@/lib/content/slugs";
+import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 import { emitClinicalCasePublication } from "@/lib/realtime/clinical-case-publications";
 
 export const placementSchema = z.enum([
@@ -228,6 +229,7 @@ export async function generateCaseImage(input: { slug: string; figureNumber: num
       if (placed.body !== content.body) await tx.content.update({ where: { id: content.id }, data: { body: placed.body } });
       return created;
     });
+    revalidatePublicContentCache();
     revalidatePath(`/panel/casos/${content.slug}`); revalidatePath(`/casos-clinicos/${content.slug}`);
     return { media_id: asset.id, image_url: asset.storagePath, is_featured: asset.isFeatured, inserted_in_body: placed.body !== content.body, placement_fallback: placed.fallback };
   } catch (error) {
@@ -246,6 +248,7 @@ export async function setCaseFeaturedImage(input: { slug: string; mediaId: strin
     await tx.caseFigure.updateMany({ where: { plan: { contentId: content.id, isCurrent: true } }, data: { isFeatured: false } });
     if (asset.figureId) await tx.caseFigure.update({ where: { id: asset.figureId }, data: { isFeatured: true } });
   });
+  revalidatePublicContentCache();
   revalidatePath(`/casos-clinicos/${content.slug}`);
   return { slug: content.slug, featured_media_id: asset.id, featured_image_url: asset.storagePath };
 }
@@ -259,6 +262,7 @@ export async function publishClinicalCase(input: { slug: string; confirmation: s
   assertPrivateDataIsSafe(content);
   if (!content.media.some((asset) => asset.isFeatured && asset.mediaType === "image" && !asset.isSensitive)) throw new Error("Define una imagen principal no sensible antes de publicar.");
   const updated = await db.content.update({ where: { id: content.id }, data: { status: ContentStatus.PUBLISHED, publishedAt: content.publishedAt || new Date(), importLogs: { create: { source: "mcp:publish_clinical_case", payloadType: "clinical_case", payloadSummary: `Publicación confirmada desde ChatGPT: ${content.title}`, state: "VALIDATED" } } } });
+  revalidatePublicContentCache();
   revalidatePath("/"); revalidatePath("/casos-clinicos"); revalidatePath(`/casos-clinicos/${content.slug}`);
 
   if (content.status !== ContentStatus.PUBLISHED && updated.publishedAt) {

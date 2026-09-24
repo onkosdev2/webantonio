@@ -1,5 +1,10 @@
 import { ContentStatus, ContentType } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
+import {
+  publicContentCacheOptions,
+  revivePublicationDates
+} from "@/lib/content/public-cache";
 
 function toArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -55,11 +60,21 @@ export async function getTextContentBySlug(type: SupportedTextType, slug: string
   };
 }
 
-export async function getPublishedTextContentItems(type: SupportedTextType) {
+async function queryPublishedTextContentItems(type: SupportedTextType) {
   const items = await db.content.findMany({
     where: {
       type,
       status: ContentStatus.PUBLISHED
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      source: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true
     },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }]
   });
@@ -69,7 +84,6 @@ export async function getPublishedTextContentItems(type: SupportedTextType) {
     title: item.title,
     slug: item.slug,
     summary: item.summary,
-    body: item.body,
     source: item.source ?? "manual",
     tags: toArray(item.tags),
     publishedAt: item.publishedAt,
@@ -77,7 +91,17 @@ export async function getPublishedTextContentItems(type: SupportedTextType) {
   }));
 }
 
-export async function getPublishedTextContentBySlug(
+const getCachedPublishedTextContentItems = unstable_cache(
+  queryPublishedTextContentItems,
+  ["published-text-content-list-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedTextContentItems(type: SupportedTextType) {
+  return (await getCachedPublishedTextContentItems(type)).map(revivePublicationDates);
+}
+
+async function queryPublishedTextContentBySlug(
   type: SupportedTextType,
   slug: string
 ) {
@@ -86,6 +110,17 @@ export async function getPublishedTextContentBySlug(
       type,
       slug,
       status: ContentStatus.PUBLISHED
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      body: true,
+      source: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true
     }
   });
 
@@ -104,6 +139,20 @@ export async function getPublishedTextContentBySlug(
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   };
+}
+
+const getCachedPublishedTextContentBySlug = unstable_cache(
+  queryPublishedTextContentBySlug,
+  ["published-text-content-detail-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedTextContentBySlug(
+  type: SupportedTextType,
+  slug: string
+) {
+  const item = await getCachedPublishedTextContentBySlug(type, slug);
+  return item ? revivePublicationDates(item) : null;
 }
 
 export async function getTextContentStats(type: SupportedTextType) {

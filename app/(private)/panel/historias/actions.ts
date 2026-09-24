@@ -7,6 +7,7 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { generateDraftWithGlm, refineDraftWithGlm } from "@/lib/ai/glm";
 import { slugify, splitCommaSeparated } from "@/lib/content/cases";
+import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 import {
   getFormText,
   resolveEditorialStatus,
@@ -61,6 +62,7 @@ async function generateStoryDraft(payload: ReturnType<typeof buildPayload>, aiTo
 }
 
 function revalidateStoryPaths(previousSlug: string, nextSlug: string) {
+  revalidatePublicContentCache();
   revalidatePath("/");
   revalidatePath("/panel");
   revalidatePath("/panel/historias");

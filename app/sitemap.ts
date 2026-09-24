@@ -15,7 +15,7 @@ const staticRoutes = [
   "/galeria"
 ] as const;
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const items = await getPublicArchiveItems();

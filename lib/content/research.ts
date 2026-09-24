@@ -1,5 +1,10 @@
 import { ContentStatus, ContentType } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
+import {
+  publicContentCacheOptions,
+  revivePublicationDates
+} from "@/lib/content/public-cache";
 
 function toArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -30,11 +35,21 @@ export async function getResearchItems() {
   }));
 }
 
-export async function getPublishedResearchItems() {
+async function queryPublishedResearchItems() {
   const items = await db.content.findMany({
     where: {
       type: ContentType.RESEARCH,
       status: ContentStatus.PUBLISHED
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      source: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true
     },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }]
   });
@@ -49,6 +64,16 @@ export async function getPublishedResearchItems() {
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   }));
+}
+
+const getCachedPublishedResearchItems = unstable_cache(
+  queryPublishedResearchItems,
+  ["published-research-list-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedResearchItems() {
+  return (await getCachedPublishedResearchItems()).map(revivePublicationDates);
 }
 
 export async function getResearchBySlug(slug: string) {
@@ -72,12 +97,23 @@ export async function getResearchBySlug(slug: string) {
   };
 }
 
-export async function getPublishedResearchBySlug(slug: string) {
+async function queryPublishedResearchBySlug(slug: string) {
   const item = await db.content.findFirst({
     where: {
       slug,
       type: ContentType.RESEARCH,
       status: ContentStatus.PUBLISHED
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      body: true,
+      source: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true
     }
   });
 
@@ -96,6 +132,17 @@ export async function getPublishedResearchBySlug(slug: string) {
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   };
+}
+
+const getCachedPublishedResearchBySlug = unstable_cache(
+  queryPublishedResearchBySlug,
+  ["published-research-detail-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedResearchBySlug(slug: string) {
+  const item = await getCachedPublishedResearchBySlug(slug);
+  return item ? revivePublicationDates(item) : null;
 }
 
 export async function getResearchStats() {

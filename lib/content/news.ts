@@ -1,5 +1,11 @@
 import { ContentStatus, ContentType } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
+import {
+  publicContentCacheOptions,
+  reviveOptionalPublicationDates,
+  revivePublicationDates
+} from "@/lib/content/public-cache";
 import { newsSources } from "@/lib/news/source-registry";
 
 function toArray(value: unknown): string[] {
@@ -54,22 +60,42 @@ export async function getNewsItems() {
   }));
 }
 
-export async function getPublishedNewsItems(options: { limit?: number } = {}) {
+async function queryPublishedNewsItems(limit?: number) {
   const items = await db.content.findMany({
     where: {
       type: ContentType.NEWS_ITEM,
       status: ContentStatus.PUBLISHED
     },
-    include: {
-      oncologyData: true,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      source: true,
+      sourceUrl: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true,
+      oncologyData: {
+        select: {
+          tumorType: true,
+          biomarkers: true
+        }
+      },
       media: {
         where: { isFeatured: true, mediaType: "image" },
         orderBy: { createdAt: "desc" },
-        take: 1
+        take: 1,
+        select: {
+          storagePath: true,
+          altText: true,
+          title: true,
+          origin: true
+        }
       }
     },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-    take: options.limit
+    take: limit
   });
 
   return items.map((item) => ({
@@ -92,6 +118,45 @@ export async function getPublishedNewsItems(options: { limit?: number } = {}) {
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   }));
+}
+
+const getCachedPublishedNewsItems = unstable_cache(
+  queryPublishedNewsItems,
+  ["published-news-list-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedNewsItems(options: { limit?: number } = {}) {
+  return (await getCachedPublishedNewsItems(options.limit)).map(revivePublicationDates);
+}
+
+async function queryRecentPublishedNewsItems() {
+  const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+
+  return db.content.findMany({
+    where: {
+      type: ContentType.NEWS_ITEM,
+      status: ContentStatus.PUBLISHED,
+      publishedAt: { gte: cutoff }
+    },
+    select: {
+      slug: true,
+      title: true,
+      publishedAt: true
+    },
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    take: 1000
+  });
+}
+
+const getCachedRecentPublishedNewsItems = unstable_cache(
+  queryRecentPublishedNewsItems,
+  ["recent-published-news-sitemap-v1"],
+  publicContentCacheOptions()
+);
+
+export async function getRecentPublishedNewsItems() {
+  return (await getCachedRecentPublishedNewsItems()).map(reviveOptionalPublicationDates);
 }
 
 export async function getNewsItemBySlug(slug: string) {
@@ -146,19 +211,40 @@ export async function getNewsItemBySlug(slug: string) {
   };
 }
 
-export async function getPublishedNewsItemBySlug(slug: string) {
+async function queryPublishedNewsItemBySlug(slug: string) {
   let item = await db.content.findFirst({
     where: {
       slug,
       type: ContentType.NEWS_ITEM,
       status: ContentStatus.PUBLISHED
     },
-    include: {
-      oncologyData: true,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      body: true,
+      source: true,
+      sourceUrl: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true,
+      oncologyData: {
+        select: {
+          tumorType: true,
+          biomarkers: true
+        }
+      },
       media: {
         where: { isFeatured: true, mediaType: "image" },
         orderBy: { createdAt: "desc" },
-        take: 1
+        take: 1,
+        select: {
+          storagePath: true,
+          altText: true,
+          title: true,
+          origin: true
+        }
       }
     }
   });
@@ -175,12 +261,33 @@ export async function getPublishedNewsItemBySlug(slug: string) {
           type: ContentType.NEWS_ITEM,
           status: ContentStatus.PUBLISHED
         },
-        include: {
-          oncologyData: true,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          summary: true,
+          body: true,
+          source: true,
+          sourceUrl: true,
+          tags: true,
+          publishedAt: true,
+          updatedAt: true,
+          oncologyData: {
+            select: {
+              tumorType: true,
+              biomarkers: true
+            }
+          },
           media: {
             where: { isFeatured: true, mediaType: "image" },
             orderBy: { createdAt: "desc" },
-            take: 1
+            take: 1,
+            select: {
+              storagePath: true,
+              altText: true,
+              title: true,
+              origin: true
+            }
           }
         }
       });
@@ -212,6 +319,17 @@ export async function getPublishedNewsItemBySlug(slug: string) {
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   };
+}
+
+const getCachedPublishedNewsItemBySlug = unstable_cache(
+  queryPublishedNewsItemBySlug,
+  ["published-news-detail-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedNewsItemBySlug(slug: string) {
+  const item = await getCachedPublishedNewsItemBySlug(slug);
+  return item ? revivePublicationDates(item) : null;
 }
 
 export async function getNewsStats() {

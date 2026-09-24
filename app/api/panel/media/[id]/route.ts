@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getApiUser } from "@/lib/auth/session";
 import { deleteR2ObjectByPublicUrl } from "@/lib/storage/r2";
+import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 
 export async function DELETE(_: Request, context: { params: Promise<{ id: string }> }) {
   if (!await getApiUser()) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -15,6 +16,7 @@ export async function DELETE(_: Request, context: { params: Promise<{ id: string
   await deleteR2ObjectByPublicUrl(asset.storagePath);
   await db.mediaAsset.delete({ where: { id } });
   if (asset.content?.slug) {
+    revalidatePublicContentCache();
     revalidatePath(`/casos-clinicos/${asset.content.slug}`);
   }
   return NextResponse.json({ ok: true });
@@ -47,6 +49,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     });
   }
   if (asset.content?.slug) {
+    revalidatePublicContentCache();
     revalidatePath(`/casos-clinicos/${asset.content.slug}`);
   }
   return NextResponse.json({ ok: true, asset: updated });

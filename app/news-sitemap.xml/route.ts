@@ -1,9 +1,8 @@
-import { getPublishedNewsItems } from "@/lib/content/news";
+import { getRecentPublishedNewsItems } from "@/lib/content/news";
 import { absoluteUrl, siteName } from "@/lib/seo";
 
-export const dynamic = "force-dynamic";
-
-const NEWS_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+export const dynamic = "force-static";
+export const revalidate = 600;
 
 function escapeXml(value: string) {
   return value
@@ -15,10 +14,7 @@ function escapeXml(value: string) {
 }
 
 export async function GET() {
-  const cutoff = Date.now() - NEWS_WINDOW_MS;
-  const items = (await getPublishedNewsItems({ limit: 1000 })).filter(
-    (item) => item.publishedAt && item.publishedAt.getTime() >= cutoff
-  );
+  const items = await getRecentPublishedNewsItems();
 
   const urls = items
     .map((item) => {

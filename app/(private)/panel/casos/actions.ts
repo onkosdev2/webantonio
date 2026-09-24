@@ -15,6 +15,7 @@ import {
   markVisualPlanStale
 } from "@/lib/ai/visual-pipeline/orchestrator";
 import { slugify, splitCommaSeparated } from "@/lib/content/cases";
+import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 import {
   getFormText,
   parseContentStatus,
@@ -128,6 +129,7 @@ async function generateClinicalCaseDraft(
 }
 
 function revalidateClinicalCasePaths(previousSlug: string, nextSlug: string) {
+  revalidatePublicContentCache();
   revalidatePath("/");
   revalidatePath("/panel");
   revalidatePath("/panel/casos");

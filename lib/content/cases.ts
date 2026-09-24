@@ -1,6 +1,11 @@
 import { ContentStatus, ContentType } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { getEditorialQualityReview } from "@/lib/ai/visual-pipeline/presentation";
+import {
+  publicContentCacheOptions,
+  revivePublicationDates
+} from "@/lib/content/public-cache";
 
 type JsonArray = string[] | null;
 
@@ -57,14 +62,27 @@ export async function getClinicalCases() {
   }));
 }
 
-export async function getPublishedClinicalCases() {
+async function queryPublishedClinicalCases(limit?: number) {
   const cases = await db.content.findMany({
     where: {
       type: ContentType.CLINICAL_CASE,
       status: ContentStatus.PUBLISHED
     },
-    include: {
-      oncologyData: true,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true,
+      oncologyData: {
+        select: {
+          tumorType: true,
+          stage: true,
+          biomarkers: true
+        }
+      },
       media: {
         where: {
           mediaType: "image",
@@ -81,7 +99,8 @@ export async function getPublishedClinicalCases() {
         take: 1
       }
     },
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }]
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    take: limit
   });
 
   return cases.map((item) => ({
@@ -102,6 +121,16 @@ export async function getPublishedClinicalCases() {
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   }));
+}
+
+const getCachedPublishedClinicalCases = unstable_cache(
+  queryPublishedClinicalCases,
+  ["published-clinical-cases-list-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedClinicalCases(options: { limit?: number } = {}) {
+  return (await getCachedPublishedClinicalCases(options.limit)).map(revivePublicationDates);
 }
 
 export async function getClinicalCaseBySlug(slug: string) {
@@ -183,18 +212,41 @@ export async function getClinicalCaseBySlug(slug: string) {
   };
 }
 
-export async function getPublishedClinicalCaseBySlug(slug: string) {
+async function queryPublishedClinicalCaseBySlug(slug: string) {
   const item = await db.content.findFirst({
     where: {
       slug,
       type: ContentType.CLINICAL_CASE,
       status: ContentStatus.PUBLISHED
     },
-    include: {
-      oncologyData: true,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      body: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true,
+      oncologyData: {
+        select: {
+          tumorType: true,
+          stage: true,
+          biomarkers: true,
+          treatmentLine: true,
+          treatmentPlan: true,
+          response: true
+        }
+      },
       media: {
         where: { isFeatured: true, mediaType: "image" },
-        take: 1
+        take: 1,
+        select: {
+          storagePath: true,
+          altText: true,
+          title: true,
+          origin: true
+        }
       }
     }
   });
@@ -226,6 +278,17 @@ export async function getPublishedClinicalCaseBySlug(slug: string) {
         }
       : null
   };
+}
+
+const getCachedPublishedClinicalCaseBySlug = unstable_cache(
+  queryPublishedClinicalCaseBySlug,
+  ["published-clinical-case-detail-v2"],
+  publicContentCacheOptions()
+);
+
+export async function getPublishedClinicalCaseBySlug(slug: string) {
+  const item = await getCachedPublishedClinicalCaseBySlug(slug);
+  return item ? revivePublicationDates(item) : null;
 }
 
 export async function getClinicalCaseStats() {

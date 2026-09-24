@@ -7,6 +7,7 @@ import { requireAdminSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { generateDraftWithGlm, refineDraftWithGlm } from "@/lib/ai/glm";
 import { slugify, splitCommaSeparated } from "@/lib/content/cases";
+import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 import {
   getFormText,
   resolveEditorialStatus,
@@ -64,6 +65,7 @@ async function generateResearchDraft(
 }
 
 function revalidateResearchPaths(previousSlug: string, nextSlug: string) {
+  revalidatePublicContentCache();
   revalidatePath("/");
   revalidatePath("/panel");
   revalidatePath("/panel/investigacion");

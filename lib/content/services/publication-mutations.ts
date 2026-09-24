@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { findPersonalIdentifierRisks } from "@/lib/ai/privacy";
+import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 
 export const publicationEntitySchema = z.enum(["clinical_case", "news_item"]);
 export type PublicationEntity = z.infer<typeof publicationEntitySchema>;
@@ -44,6 +45,7 @@ export const archivePublicationSchema = z.object({
 }).strict();
 
 export function revalidatePublication(entity: PublicationEntity, slug: string) {
+  revalidatePublicContentCache();
   const section = entity === "clinical_case" ? "casos-clinicos" : "noticias";
   const panel = entity === "clinical_case" ? "casos" : "noticias";
   for (const path of ["/", "/panel", "/galeria", `/panel/${panel}`, `/panel/${panel}/${slug}`, `/${section}`, `/${section}/${slug}`, "/sitemap.xml", "/news-sitemap.xml"]) revalidatePath(path);

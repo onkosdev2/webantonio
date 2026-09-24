@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { generateCaseImages, type ImageAspectRatio, type ImageProvider } from "@/lib/ai/nvidia-images";
 import { resolveUniqueNewsSlug } from "@/lib/content/slugs";
+import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 import { db } from "@/lib/db";
 import { emitNewsPublication } from "@/lib/realtime/clinical-case-publications";
 
@@ -65,6 +66,7 @@ const newsUrls = (slug: string) => ({
 });
 
 function revalidateNews(slug: string) {
+  revalidatePublicContentCache();
   revalidatePath("/");
   revalidatePath("/noticias");
   revalidatePath(`/noticias/${slug}`);

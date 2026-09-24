@@ -1,8 +1,9 @@
-import { getPublishedClinicalCases } from "@/lib/content/cases";
-import { getPublishedEditorials } from "@/lib/content/editorials";
-import { getPublishedNewsItems } from "@/lib/content/news";
-import { getPublishedResearchItems } from "@/lib/content/research";
-import { getPublishedTextContentItems } from "@/lib/content/text-content";
+import { ContentStatus, ContentType } from "@prisma/client";
+import { unstable_cache } from "next/cache";
+import { db } from "@/lib/db";
+import {
+  publicContentCacheOptions
+} from "@/lib/content/public-cache";
 
 export type PublicArchiveType =
   | "clinical_case"
@@ -176,122 +177,171 @@ export function getRelatedPublicItems(
     .slice(0, limit);
 }
 
-export async function getPublicArchiveItems() {
-  const [cases, news, editorials, research, reflections, stories] = await Promise.all([
-    getPublishedClinicalCases(),
-    getPublishedNewsItems(),
-    getPublishedEditorials(),
-    getPublishedResearchItems(),
-    getPublishedTextContentItems("REFLECTION"),
-    getPublishedTextContentItems("STORY")
-  ]);
-
-  const caseItems: PublicArchiveItem[] = cases.map((item) => ({
-    href: `/casos-clinicos/${item.slug}`,
-    title: item.title,
-    summary: item.summary,
-    kicker: "Caso clínico",
-    type: "clinical_case",
-    publishedAt: item.publishedAt,
-    updatedAt: item.updatedAt,
-    tumorType: item.tumorType,
-    biomarkers: item.biomarkers,
-    tags: item.tags,
-    meta: [
-      item.tumorType || "",
-      item.stage ? `Estadio ${item.stage}` : "",
-      item.biomarkers.length > 0
-        ? `Biomarcadores: ${item.biomarkers.join(", ")}`
-        : ""
-    ].filter(Boolean)
-  }));
-
-  const newsItems: PublicArchiveItem[] = news.map((item) => ({
-    href: `/noticias/${item.slug}`,
-    title: item.title,
-    summary: item.summary,
-    kicker: "Noticia oncológica",
-    type: "news_item",
-    publishedAt: item.publishedAt,
-    updatedAt: item.updatedAt,
-    tumorType: item.tumorType,
-    biomarkers: item.biomarkers,
-    tags: item.tags,
-    source: item.source,
-    image: item.featuredImage,
-    meta: [
-      item.source || "",
-      item.tumorType || "",
-      item.biomarkers.length > 0
-        ? `Biomarcadores: ${item.biomarkers.join(", ")}`
-        : ""
-    ].filter(Boolean)
-  }));
-
-  const editorialItems: PublicArchiveItem[] = editorials.map((item) => ({
-    href: `/editoriales/${item.slug}`,
-    title: item.title,
-    summary: item.summary,
-    kicker: "Editorial",
-    type: "editorial",
-    publishedAt: item.publishedAt,
-    updatedAt: item.updatedAt,
-    tags: item.tags,
-    source: item.source,
-    meta: [item.source || "", ...item.tags.slice(0, 3)].filter(Boolean)
-  }));
-
-  const researchItems: PublicArchiveItem[] = research.map((item) => ({
-    href: `/investigacion/${item.slug}`,
-    title: item.title,
-    summary: item.summary,
-    kicker: "Investigación",
-    type: "research",
-    publishedAt: item.publishedAt,
-    updatedAt: item.updatedAt,
-    tags: item.tags,
-    source: item.source,
-    meta: [item.source || "", ...item.tags.slice(0, 3)].filter(Boolean)
-  }));
-
-  const reflectionItems: PublicArchiveItem[] = reflections.map((item) => ({
-    href: `/reflexiones/${item.slug}`,
-    title: item.title,
-    summary: item.summary,
-    kicker: "Reflexión",
-    type: "reflection",
-    publishedAt: item.publishedAt,
-    updatedAt: item.updatedAt,
-    tags: item.tags,
-    source: item.source,
-    meta: item.tags.slice(0, 3)
-  }));
-
-  const storyItems: PublicArchiveItem[] = stories.map((item) => ({
-    href: `/historias/${item.slug}`,
-    title: item.title,
-    summary: item.summary,
-    kicker: "Historia",
-    type: "story",
-    publishedAt: item.publishedAt,
-    updatedAt: item.updatedAt,
-    tags: item.tags,
-    source: item.source,
-    meta: item.tags.slice(0, 3)
-  }));
-
-  return [
-    ...caseItems,
-    ...newsItems,
-    ...editorialItems,
-    ...researchItems,
-    ...reflectionItems,
-    ...storyItems
-  ].sort((left, right) => {
-    const leftTime = left.publishedAt?.getTime() ?? 0;
-    const rightTime = right.publishedAt?.getTime() ?? 0;
-    return rightTime - leftTime;
+async function queryPublicArchiveItems(): Promise<PublicArchiveItem[]> {
+  const items = await db.content.findMany({
+    where: {
+      status: ContentStatus.PUBLISHED,
+      type: {
+        in: [
+          ContentType.CLINICAL_CASE,
+          ContentType.NEWS_ITEM,
+          ContentType.EDITORIAL,
+          ContentType.RESEARCH,
+          ContentType.REFLECTION,
+          ContentType.STORY
+        ]
+      }
+    },
+    select: {
+      type: true,
+      slug: true,
+      title: true,
+      summary: true,
+      source: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true,
+      oncologyData: {
+        select: {
+          tumorType: true,
+          stage: true,
+          biomarkers: true
+        }
+      },
+      media: {
+        where: { isFeatured: true, mediaType: "image" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          storagePath: true,
+          altText: true,
+          title: true
+        }
+      }
+    },
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }]
   });
+
+  return items.map((item): PublicArchiveItem => {
+    const tags = Array.isArray(item.tags)
+      ? item.tags.filter((tag): tag is string => typeof tag === "string")
+      : [];
+    const biomarkers = Array.isArray(item.oncologyData?.biomarkers)
+      ? item.oncologyData.biomarkers.filter(
+          (biomarker): biomarker is string => typeof biomarker === "string"
+        )
+      : [];
+    const tumorType = item.oncologyData?.tumorType ?? "";
+    const common = {
+      title: item.title,
+      summary: item.summary,
+      publishedAt: item.publishedAt,
+      updatedAt: item.updatedAt,
+      tags
+    };
+
+    switch (item.type) {
+      case ContentType.CLINICAL_CASE:
+        return {
+          ...common,
+          href: `/casos-clinicos/${item.slug}`,
+          kicker: "Caso clínico",
+          type: "clinical_case",
+          tumorType,
+          biomarkers,
+          meta: [
+            tumorType,
+            item.oncologyData?.stage ? `Estadio ${item.oncologyData.stage}` : "",
+            biomarkers.length > 0 ? `Biomarcadores: ${biomarkers.join(", ")}` : ""
+          ].filter(Boolean)
+        };
+      case ContentType.NEWS_ITEM:
+        return {
+          ...common,
+          href: `/noticias/${item.slug}`,
+          kicker: "Noticia oncológica",
+          type: "news_item",
+          tumorType,
+          biomarkers,
+          source: item.source ?? "manual",
+          image: item.media[0]
+            ? {
+                src: item.media[0].storagePath,
+                alt: item.media[0].altText || item.media[0].title || item.title
+              }
+            : null,
+          meta: [
+            item.source ?? "manual",
+            tumorType,
+            biomarkers.length > 0 ? `Biomarcadores: ${biomarkers.join(", ")}` : ""
+          ].filter(Boolean)
+        };
+      case ContentType.EDITORIAL:
+        return {
+          ...common,
+          href: `/editoriales/${item.slug}`,
+          kicker: "Editorial",
+          type: "editorial",
+          source: item.source ?? "manual",
+          meta: [item.source ?? "manual", ...tags.slice(0, 3)].filter(Boolean)
+        };
+      case ContentType.RESEARCH:
+        return {
+          ...common,
+          href: `/investigacion/${item.slug}`,
+          kicker: "Investigación",
+          type: "research",
+          source: item.source ?? "manual",
+          meta: [item.source ?? "manual", ...tags.slice(0, 3)].filter(Boolean)
+        };
+      case ContentType.REFLECTION:
+        return {
+          ...common,
+          href: `/reflexiones/${item.slug}`,
+          kicker: "Reflexión",
+          type: "reflection",
+          source: item.source ?? "manual",
+          meta: tags.slice(0, 3)
+        };
+      case ContentType.STORY:
+        return {
+          ...common,
+          href: `/historias/${item.slug}`,
+          kicker: "Historia",
+          type: "story",
+          source: item.source ?? "manual",
+          meta: tags.slice(0, 3)
+        };
+      default:
+        throw new Error(`Unsupported public content type: ${item.type}`);
+    }
+  });
+}
+
+const getCachedPublicArchiveItems = unstable_cache(
+  queryPublicArchiveItems,
+  ["public-archive-v2"],
+  publicContentCacheOptions()
+);
+
+function reviveArchiveDate(value: Date | string | null | undefined) {
+  if (value == null) return value;
+  return value instanceof Date ? value : new Date(value);
+}
+
+export async function getPublicArchiveItems(): Promise<PublicArchiveItem[]> {
+  const items = (await getCachedPublicArchiveItems()) as Array<
+    Omit<PublicArchiveItem, "publishedAt" | "updatedAt"> & {
+      publishedAt?: Date | string | null;
+      updatedAt?: Date | string | null;
+    }
+  >;
+
+  return items.map((item) => ({
+    ...item,
+    publishedAt: reviveArchiveDate(item.publishedAt),
+    updatedAt: reviveArchiveDate(item.updatedAt)
+  }));
 }
 
 export async function getPublicHomeFeed() {
