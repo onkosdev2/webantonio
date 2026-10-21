@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const MAX_TRACKED_LOGIN_EMAILS = 2_000;
 
 type LoginAttempt = {
   count: number;
@@ -60,6 +61,24 @@ function assertLoginAllowed(email: string) {
 
 function registerFailedLogin(email: string) {
   const current = getLoginAttempt(email);
+
+  // Login attempts are keyed by user supplied email addresses. Without a cap,
+  // requests with many unique addresses can grow this process-local map forever.
+  if (!loginAttempts.has(email) && loginAttempts.size >= MAX_TRACKED_LOGIN_EMAILS) {
+    const now = Date.now();
+
+    for (const [trackedEmail, attempt] of loginAttempts) {
+      if (now - attempt.firstAttemptAt > LOGIN_WINDOW_MS) {
+        loginAttempts.delete(trackedEmail);
+      }
+    }
+
+    while (loginAttempts.size >= MAX_TRACKED_LOGIN_EMAILS) {
+      const oldestEmail = loginAttempts.keys().next().value;
+      if (!oldestEmail) break;
+      loginAttempts.delete(oldestEmail);
+    }
+  }
 
   loginAttempts.set(email, {
     count: current.count + 1,
