@@ -7,6 +7,7 @@ import {
   revivePublicationDates
 } from "@/lib/content/public-cache";
 import { newsSources } from "@/lib/news/source-registry";
+import { buildPublicListingWhere, type PublicListingFilters } from "@/lib/content/public-listing";
 
 function toArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -60,12 +61,9 @@ export async function getNewsItems() {
   }));
 }
 
-async function queryPublishedNewsItems(limit?: number) {
+async function queryPublishedNewsItems(limit?: number, offset = 0, filters: PublicListingFilters = {}) {
   const items = await db.content.findMany({
-    where: {
-      type: ContentType.NEWS_ITEM,
-      status: ContentStatus.PUBLISHED
-    },
+    where: buildPublicListingWhere(ContentType.NEWS_ITEM, filters, true),
     select: {
       id: true,
       title: true,
@@ -95,7 +93,8 @@ async function queryPublishedNewsItems(limit?: number) {
       }
     },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-    take: limit
+    take: limit,
+    skip: offset
   });
 
   return items.map((item) => ({
@@ -122,12 +121,30 @@ async function queryPublishedNewsItems(limit?: number) {
 
 const getCachedPublishedNewsItems = unstable_cache(
   queryPublishedNewsItems,
-  ["published-news-list-v2"],
+  ["published-news-list-v3"],
   publicContentCacheOptions()
 );
 
 export async function getPublishedNewsItems(options: { limit?: number } = {}) {
   return (await getCachedPublishedNewsItems(options.limit)).map(revivePublicationDates);
+}
+
+export async function getPublishedNewsPage(
+  filters: PublicListingFilters,
+  page: number,
+  pageSize: number
+) {
+  const where = buildPublicListingWhere(ContentType.NEWS_ITEM, filters, true);
+  const total = await db.content.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const items = await getCachedPublishedNewsItems(pageSize, (currentPage - 1) * pageSize, filters);
+  return {
+    items: items.map(revivePublicationDates),
+    total,
+    page: currentPage,
+    pageCount
+  };
 }
 
 async function queryRecentPublishedNewsItems() {
@@ -137,7 +154,8 @@ async function queryRecentPublishedNewsItems() {
     where: {
       type: ContentType.NEWS_ITEM,
       status: ContentStatus.PUBLISHED,
-      publishedAt: { gte: cutoff }
+      publishedAt: { gte: cutoff },
+      NOT: { title: { startsWith: "MAQUETA EDITORIAL", mode: "insensitive" } }
     },
     select: {
       slug: true,
@@ -151,7 +169,7 @@ async function queryRecentPublishedNewsItems() {
 
 const getCachedRecentPublishedNewsItems = unstable_cache(
   queryRecentPublishedNewsItems,
-  ["recent-published-news-sitemap-v1"],
+  ["recent-published-news-sitemap-v2"],
   publicContentCacheOptions()
 );
 
@@ -216,7 +234,8 @@ async function queryPublishedNewsItemBySlug(slug: string) {
     where: {
       slug,
       type: ContentType.NEWS_ITEM,
-      status: ContentStatus.PUBLISHED
+      status: ContentStatus.PUBLISHED,
+      NOT: { title: { startsWith: "MAQUETA EDITORIAL", mode: "insensitive" } }
     },
     select: {
       id: true,
@@ -259,7 +278,8 @@ async function queryPublishedNewsItemBySlug(slug: string) {
         where: {
           id: alias.contentId,
           type: ContentType.NEWS_ITEM,
-          status: ContentStatus.PUBLISHED
+          status: ContentStatus.PUBLISHED,
+          NOT: { title: { startsWith: "MAQUETA EDITORIAL", mode: "insensitive" } }
         },
         select: {
           id: true,
@@ -323,7 +343,7 @@ async function queryPublishedNewsItemBySlug(slug: string) {
 
 const getCachedPublishedNewsItemBySlug = unstable_cache(
   queryPublishedNewsItemBySlug,
-  ["published-news-detail-v2"],
+  ["published-news-detail-v3"],
   publicContentCacheOptions()
 );
 

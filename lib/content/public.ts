@@ -190,6 +190,12 @@ async function queryPublicArchiveItems(): Promise<PublicArchiveItem[]> {
           ContentType.REFLECTION,
           ContentType.STORY
         ]
+      },
+      NOT: {
+        AND: [
+          { type: ContentType.NEWS_ITEM },
+          { title: { startsWith: "MAQUETA EDITORIAL", mode: "insensitive" } }
+        ]
       }
     },
     select: {
@@ -320,7 +326,7 @@ async function queryPublicArchiveItems(): Promise<PublicArchiveItem[]> {
 
 const getCachedPublicArchiveItems = unstable_cache(
   queryPublicArchiveItems,
-  ["public-archive-v2"],
+  ["public-archive-v3"],
   publicContentCacheOptions()
 );
 

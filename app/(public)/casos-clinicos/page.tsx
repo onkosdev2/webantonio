@@ -1,12 +1,12 @@
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import { ClinicalCasesLiveUpdates } from "@/components/editorial/clinical-cases-live-updates";
 import { getSearchParamValue } from "@/lib/content/public-query";
-import {
-  filterPublicArchiveItems,
-  getArchiveFilterOptions
-} from "@/lib/content/public";
-import { getPublishedClinicalCases } from "@/lib/content/cases";
+import { getPublishedClinicalCasesPage } from "@/lib/content/cases";
 import { formatPublicPublicationDate } from "@/lib/content/public-dates";
+import {
+  PUBLIC_ARCHIVE_PAGE_SIZE,
+  parsePublicArchivePage
+} from "@/lib/content/public-listing";
 
 type CasosClinicosPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -15,11 +15,16 @@ type CasosClinicosPageProps = {
 export default async function CasosClinicosPage({
   searchParams
 }: CasosClinicosPageProps) {
-  const items = await getPublishedClinicalCases();
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const q = getSearchParamValue(resolvedSearchParams, "q");
   const tumor = getSearchParamValue(resolvedSearchParams, "tumor");
   const biomarker = getSearchParamValue(resolvedSearchParams, "biomarker");
+  const requestedPage = parsePublicArchivePage(getSearchParamValue(resolvedSearchParams, "page"));
+  const { items, total, page, pageCount } = await getPublishedClinicalCasesPage(
+    { q, tumor, biomarker },
+    requestedPage,
+    PUBLIC_ARCHIVE_PAGE_SIZE
+  );
   const baseItems = items.map((item) => ({
     href: `/casos-clinicos/${item.slug}`,
     title: item.title,
@@ -38,12 +43,16 @@ export default async function CasosClinicosPage({
         : ""
     ].filter(Boolean)
   }));
-  const filteredItems = filterPublicArchiveItems(baseItems, {
-    q,
-    tumor,
-    biomarker
-  });
-  const filterOptions = getArchiveFilterOptions(baseItems);
+  const filteredItems = baseItems;
+  const hrefForPage = (nextPage: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (tumor) params.set("tumor", tumor);
+    if (biomarker) params.set("biomarker", biomarker);
+    if (nextPage > 1) params.set("page", String(nextPage));
+    const query = params.toString();
+    return query ? `/casos-clinicos?${query}` : "/casos-clinicos";
+  };
 
   return (
     <>
@@ -54,24 +63,25 @@ export default async function CasosClinicosPage({
       description="Casos organizados por diagnóstico, biomarcadores, tratamiento y evolución, con aprendizajes para la práctica clínica."
       signature="Decisiones clínicas explicadas con contexto"
       countLabel="casos clínicos publicados"
-      itemCount={filteredItems.length}
+      itemCount={total}
       searchAction="/casos-clinicos"
       searchQuery={q}
       filters={[
         {
           label: "Tumor",
           name: "tumor",
-          options: filterOptions.tumors,
+          input: true,
           value: tumor
         },
         {
           label: "Biomarcador",
           name: "biomarker",
-          options: filterOptions.biomarkers,
+          input: true,
           value: biomarker
         }
       ]}
       clearHref="/casos-clinicos"
+      pagination={{ page, pageCount, hrefForPage }}
       items={filteredItems.map((item) => {
         const meta: Array<string | { label: string; href?: string }> = [];
         const publicationDate = formatPublicPublicationDate(item.publishedAt);

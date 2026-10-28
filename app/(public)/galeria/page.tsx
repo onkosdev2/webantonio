@@ -1,8 +1,16 @@
 import { SiteHeader } from "@/components/layout/site-header";
-import { getPublicGalleryAssets } from "@/lib/content/gallery";
+import { getPublicGalleryPage } from "@/lib/content/gallery";
+import { parsePublicArchivePage } from "@/lib/content/public-listing";
 
-export default async function GaleriaPage() {
-  const items = await getPublicGalleryAssets();
+type GaleriaPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function GaleriaPage({ searchParams }: GaleriaPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const pageValue = resolvedSearchParams.page;
+  const requestedPage = parsePublicArchivePage(Array.isArray(pageValue) ? pageValue[0] : pageValue);
+  const { items, total, page, pageCount } = await getPublicGalleryPage(requestedPage);
 
   return (
     <>
@@ -19,6 +27,7 @@ export default async function GaleriaPage() {
         </section>
 
         <section className="shell public-gallery-section">
+          <p className="public-gallery-count">{total} {total === 1 ? "activo público" : "activos públicos"}</p>
           {items.length > 0 ? (
             <div className="public-gallery-grid">
               {items.map((item, index) => {
@@ -61,6 +70,13 @@ export default async function GaleriaPage() {
               </p>
             </article>
           )}
+          {pageCount > 1 ? (
+            <nav className="public-gallery-pagination" aria-label="Paginación de la galería">
+              {page > 1 ? <a href={`/galeria?page=${page - 1}`}>Anterior</a> : <span aria-disabled="true">Anterior</span>}
+              <span aria-current="page">Página {page} de {pageCount}</span>
+              {page < pageCount ? <a href={`/galeria?page=${page + 1}`}>Siguiente</a> : <span aria-disabled="true">Siguiente</span>}
+            </nav>
+          ) : null}
         </section>
       </main>
     </>

@@ -60,8 +60,16 @@ function formatCompactPublicationDate(value: Date) {
 
 export async function HomePage() {
   const [publishedCases, newsItems] = await Promise.all([
-    getPublishedClinicalCases().then((items) => items.slice(0, 3)),
-    getPublishedNewsItems({ limit: 3 })
+    getPublishedClinicalCases()
+      .then((items) => items.slice(0, 3))
+      .catch((error) => {
+        console.error("Unable to load clinical cases for the home page", error);
+        return [];
+      }),
+    getPublishedNewsItems({ limit: 3 }).catch((error) => {
+      console.error("Unable to load news for the home page", error);
+      return [];
+    })
   ]);
   const featuredCase = publishedCases[0];
   const relatedCases = publishedCases.slice(1);

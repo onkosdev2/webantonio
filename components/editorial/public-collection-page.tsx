@@ -30,8 +30,15 @@ type PublicCollectionItem = {
 type PublicFilterConfig = {
   label: string;
   name: string;
-  options: Array<string | { value: string; label: string }>;
+  options?: Array<string | { value: string; label: string }>;
   value?: string;
+  input?: boolean;
+};
+
+type PublicPagination = {
+  page: number;
+  pageCount: number;
+  hrefForPage: (page: number) => string;
 };
 
 type PublicCollectionPageProps = {
@@ -48,6 +55,7 @@ type PublicCollectionPageProps = {
   searchQuery?: string;
   filters?: PublicFilterConfig[];
   clearHref?: string;
+  pagination?: PublicPagination;
 };
 
 function getSectionPresentation(title: string, searchAction?: string) {
@@ -82,7 +90,8 @@ export function PublicCollectionPage({
   searchAction,
   searchQuery = "",
   filters = [],
-  clearHref
+  clearHref,
+  pagination
 }: PublicCollectionPageProps) {
   const section = getSectionPresentation(title, searchAction);
 
@@ -150,17 +159,26 @@ export function PublicCollectionPage({
               {filters.map((filter) => (
                 <label key={filter.name} className={styles.filterField}>
                   <span>{filter.label}</span>
-                  <select name={filter.name} defaultValue={filter.value ?? ""}>
-                    <option value="">Todos</option>
-                    {filter.options.map((option) => (
-                      <option
-                        key={typeof option === "string" ? option : option.value}
-                        value={typeof option === "string" ? option : option.value}
-                      >
-                        {typeof option === "string" ? option : option.label}
-                      </option>
-                    ))}
-                  </select>
+                  {filter.input ? (
+                    <input
+                      type="search"
+                      name={filter.name}
+                      defaultValue={filter.value ?? ""}
+                      placeholder={`Cualquier ${filter.label.toLowerCase()}`}
+                    />
+                  ) : (
+                    <select name={filter.name} defaultValue={filter.value ?? ""}>
+                      <option value="">Todos</option>
+                      {(filter.options ?? []).map((option) => (
+                        <option
+                          key={typeof option === "string" ? option : option.value}
+                          value={typeof option === "string" ? option : option.value}
+                        >
+                          {typeof option === "string" ? option : option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </label>
               ))}
 
@@ -244,6 +262,18 @@ export function PublicCollectionPage({
               <p>{emptyCopy}</p>
             </article>
           )}
+
+          {pagination && pagination.pageCount > 1 ? (
+            <nav className={styles.pagination} aria-label="Paginación del archivo">
+              {pagination.page > 1 ? (
+                <a href={pagination.hrefForPage(pagination.page - 1)}>Anterior</a>
+              ) : <span aria-disabled="true">Anterior</span>}
+              <span aria-current="page">Página {pagination.page} de {pagination.pageCount}</span>
+              {pagination.page < pagination.pageCount ? (
+                <a href={pagination.hrefForPage(pagination.page + 1)}>Siguiente</a>
+              ) : <span aria-disabled="true">Siguiente</span>}
+            </nav>
+          ) : null}
         </section>
       </main>
     </>

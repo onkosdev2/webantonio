@@ -1,5 +1,6 @@
 import { ContentStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { PUBLIC_ARCHIVE_PAGE_SIZE } from "@/lib/content/public-listing";
 
 export async function getGalleryAssets() {
   const items = await db.mediaAsset.findMany({
@@ -103,6 +104,50 @@ export async function getPublicGalleryAssets() {
     linkedContentTitle: item.content?.title ?? "",
     createdAt: item.createdAt
   }));
+}
+
+export async function getPublicGalleryPage(page: number, pageSize = PUBLIC_ARCHIVE_PAGE_SIZE) {
+  const where = {
+    isSensitive: false,
+    OR: [
+      { contentId: null },
+      { content: { is: { status: ContentStatus.PUBLISHED } } }
+    ]
+  };
+  const total = await db.mediaAsset.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const items = await db.mediaAsset.findMany({
+    where,
+    select: {
+      id: true,
+      title: true,
+      altText: true,
+      storagePath: true,
+      mediaType: true,
+      createdAt: true,
+      content: { select: { slug: true, title: true } }
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize
+  });
+
+  return {
+    items: items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      altText: item.altText ?? "",
+      storagePath: item.storagePath,
+      mediaType: item.mediaType,
+      linkedContentSlug: item.content?.slug ?? "",
+      linkedContentTitle: item.content?.title ?? "",
+      createdAt: item.createdAt
+    })),
+    total,
+    page: currentPage,
+    pageCount
+  };
 }
 
 export async function getGalleryStats() {

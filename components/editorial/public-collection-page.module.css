@@ -209,7 +209,8 @@
 }
 
 .searchField input,
-.filterField select {
+.filterField select,
+.filterField input {
   width: 100%;
   min-height: 44px;
   border: 1px solid rgba(25, 57, 52, 0.14);
@@ -223,12 +224,14 @@
   padding: 0 14px 0 42px;
 }
 
-.filterField select {
+.filterField select,
+.filterField input {
   padding: 0 12px;
 }
 
 .searchField input:focus,
-.filterField select:focus {
+.filterField select:focus,
+.filterField input:focus {
   outline: 2px solid #1a5a53;
   outline-offset: 2px;
 }
@@ -472,6 +475,35 @@
   border: 1px solid #d9cdbb;
   border-radius: 12px;
   background: #f5efe4;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 28px 0 4px;
+  color: #526052;
+  font-size: 14px;
+}
+
+.pagination a,
+.pagination > span:first-child,
+.pagination > span:last-child {
+  border: 1px solid #cfc5b4;
+  border-radius: 999px;
+  padding: 9px 15px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pagination a:hover {
+  border-color: #71856b;
+  color: #263a2b;
+}
+
+.pagination [aria-disabled="true"] {
+  opacity: 0.48;
 }
 
 .emptyState > span {

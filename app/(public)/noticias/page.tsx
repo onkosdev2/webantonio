@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import { NewsLiveUpdates } from "@/components/editorial/clinical-cases-live-updates";
 import { getSearchParamValue } from "@/lib/content/public-query";
-import {
-  filterPublicArchiveItems,
-  getArchiveFilterOptions
-} from "@/lib/content/public";
-import { getPublishedNewsItems } from "@/lib/content/news";
+import { getPublishedNewsPage } from "@/lib/content/news";
 import { formatPublicPublicationDate } from "@/lib/content/public-dates";
+import {
+  PUBLIC_ARCHIVE_PAGE_SIZE,
+  parsePublicArchivePage
+} from "@/lib/content/public-listing";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
@@ -28,11 +28,16 @@ type NoticiasPageProps = {
 };
 
 export default async function NoticiasPage({ searchParams }: NoticiasPageProps) {
-  const items = await getPublishedNewsItems();
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const q = getSearchParamValue(resolvedSearchParams, "q");
   const tumor = getSearchParamValue(resolvedSearchParams, "tumor");
   const biomarker = getSearchParamValue(resolvedSearchParams, "biomarker");
+  const requestedPage = parsePublicArchivePage(getSearchParamValue(resolvedSearchParams, "page"));
+  const { items, total, page, pageCount } = await getPublishedNewsPage(
+    { q, tumor, biomarker },
+    requestedPage,
+    PUBLIC_ARCHIVE_PAGE_SIZE
+  );
   const baseItems = items.map((item) => ({
     href: `/noticias/${item.slug}`,
     title: item.title,
@@ -52,12 +57,16 @@ export default async function NoticiasPage({ searchParams }: NoticiasPageProps) 
         : ""
     ].filter(Boolean)
   }));
-  const filteredItems = filterPublicArchiveItems(baseItems, {
-    q,
-    tumor,
-    biomarker
-  });
-  const filterOptions = getArchiveFilterOptions(baseItems);
+  const filteredItems = baseItems;
+  const hrefForPage = (nextPage: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (tumor) params.set("tumor", tumor);
+    if (biomarker) params.set("biomarker", biomarker);
+    if (nextPage > 1) params.set("page", String(nextPage));
+    const query = params.toString();
+    return query ? `/noticias?${query}` : "/noticias";
+  };
 
   return (
     <>
@@ -68,24 +77,25 @@ export default async function NoticiasPage({ searchParams }: NoticiasPageProps) 
       description="Avances en oncología explicados con contexto para distinguir qué cambia, para quién y con qué alcance."
       signature="Actualidad clínica sin perder el contexto"
       countLabel="noticias publicadas"
-      itemCount={filteredItems.length}
+      itemCount={total}
       searchAction="/noticias"
       searchQuery={q}
       filters={[
         {
           label: "Tumor",
           name: "tumor",
-          options: filterOptions.tumors,
+          input: true,
           value: tumor
         },
         {
           label: "Biomarcador",
           name: "biomarker",
-          options: filterOptions.biomarkers,
+          input: true,
           value: biomarker
         }
       ]}
       clearHref="/noticias"
+      pagination={{ page, pageCount, hrefForPage }}
       items={filteredItems.map((item) => {
         const meta: Array<string | { label: string; href?: string }> = [];
         const publicationDate = formatPublicPublicationDate(item.publishedAt);

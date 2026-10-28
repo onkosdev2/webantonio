@@ -6,6 +6,7 @@ import {
   publicContentCacheOptions,
   revivePublicationDates
 } from "@/lib/content/public-cache";
+import { buildPublicListingWhere, type PublicListingFilters } from "@/lib/content/public-listing";
 
 type JsonArray = string[] | null;
 
@@ -62,12 +63,9 @@ export async function getClinicalCases() {
   }));
 }
 
-async function queryPublishedClinicalCases(limit?: number) {
+async function queryPublishedClinicalCases(limit?: number, offset = 0, filters: PublicListingFilters = {}) {
   const cases = await db.content.findMany({
-    where: {
-      type: ContentType.CLINICAL_CASE,
-      status: ContentStatus.PUBLISHED
-    },
+    where: buildPublicListingWhere(ContentType.CLINICAL_CASE, filters),
     select: {
       id: true,
       title: true,
@@ -100,7 +98,8 @@ async function queryPublishedClinicalCases(limit?: number) {
       }
     },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-    take: limit
+    take: limit,
+    skip: offset
   });
 
   return cases.map((item) => ({
@@ -125,12 +124,30 @@ async function queryPublishedClinicalCases(limit?: number) {
 
 const getCachedPublishedClinicalCases = unstable_cache(
   queryPublishedClinicalCases,
-  ["published-clinical-cases-list-v2"],
+  ["published-clinical-cases-list-v3"],
   publicContentCacheOptions()
 );
 
 export async function getPublishedClinicalCases(options: { limit?: number } = {}) {
   return (await getCachedPublishedClinicalCases(options.limit)).map(revivePublicationDates);
+}
+
+export async function getPublishedClinicalCasesPage(
+  filters: PublicListingFilters,
+  page: number,
+  pageSize: number
+) {
+  const where = buildPublicListingWhere(ContentType.CLINICAL_CASE, filters);
+  const total = await db.content.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const items = await getCachedPublishedClinicalCases(pageSize, (currentPage - 1) * pageSize, filters);
+  return {
+    items: items.map(revivePublicationDates),
+    total,
+    page: currentPage,
+    pageCount
+  };
 }
 
 export async function getClinicalCaseBySlug(slug: string) {
