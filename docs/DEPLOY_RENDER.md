@@ -83,7 +83,7 @@ distintas, el pre-deploy debe recibir explícitamente la credencial de migració
 
 ## 2. Crear el servicio en Render
 
-Conectar la cuenta GitHub y el repositorio `nelsononkos78/webantonio`.
+Conectar la cuenta GitHub y el repositorio `onkosdev2/webantonio`.
 
 | Campo de Render | Valor propuesto |
 | --- | --- |
