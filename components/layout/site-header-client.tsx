@@ -6,14 +6,13 @@ import { useState } from "react";
 import styles from "./site-header.module.css";
 
 const navigation = [
-  { href: "/casos-clinicos", label: "Casos" },
   { href: "/noticias", label: "Noticias" },
   { href: "/editoriales", label: "Editorial" },
+  { href: "/casos-clinicos", label: "Casos" },
   { href: "/investigacion", label: "Investigación" },
   { href: "/reflexiones", label: "Reflexiones" },
-  { href: "/orientacion-oncologica-remota", label: "Orientación" },
-  { href: "/sobre-mi", label: "Sobre mí" },
-  { href: "/galeria", label: "Galería" }
+  { href: "/galeria", label: "Galería" },
+  { href: "/sobre-mi", label: "Sobre mí" }
 ] as const;
 
 export function SiteHeaderClient({
