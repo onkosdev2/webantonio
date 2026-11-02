@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
-import { getPublishedResearchBySlug } from "@/lib/content/research";
+import { getPublishedResearchBySlug, researchPublicBody, researchPublicSourceLabel } from "@/lib/content/research";
 import { getPublicArchiveItems, getRelatedPublicItems } from "@/lib/content/public";
 import { articleJsonLd, articleMetadata, breadcrumbJsonLd, physicianJsonLd } from "@/lib/seo";
 
@@ -25,7 +25,7 @@ export async function generateMetadata({
     title: `${item.title} | Investigación oncológica`,
     description: item.summary,
     path: `/investigacion/${item.slug}`,
-    keywords: [item.source, ...item.tags, "investigación oncológica"].filter(Boolean)
+    keywords: [...item.tags, "investigación oncológica"]
   });
 }
 
@@ -53,12 +53,12 @@ export default async function InvestigacionPublicaPage({
       kicker="Investigación publicada"
       title={item.title}
       summary={item.summary}
-      body={item.body}
+      body={researchPublicBody(item.body, item.source)}
       featuredImage={item.featuredImage}
       backHref="/investigacion"
       backLabel="Volver a investigación"
       editHref={`/panel/investigacion/${item.slug}`}
-      meta={[item.source ? `Fuente: ${item.source}` : ""].filter(Boolean)}
+      meta={[researchPublicSourceLabel(item.source) ? `Fuente: ${researchPublicSourceLabel(item.source)}` : ""].filter(Boolean)}
       tags={item.tags.map((tag) => ({
         label: tag,
         href: `/investigacion?tag=${encodeURIComponent(tag)}`
@@ -73,7 +73,7 @@ export default async function InvestigacionPublicaPage({
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
           articleSection: "Investigación oncológica",
-          keywords: [item.source, ...item.tags].filter(Boolean)
+          keywords: item.tags
         }),
         breadcrumbJsonLd([
           { name: "Inicio", path: "/" },

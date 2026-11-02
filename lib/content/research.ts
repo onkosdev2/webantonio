@@ -15,6 +15,33 @@ function toArray(value: unknown): string[] {
   return [];
 }
 
+function extractResearchReferences(source: string | null | undefined) {
+  const match = source?.trim().match(/^Fuentes:\s*([\s\S]+)$/i);
+  if (!match) return null;
+
+  let text = match[1].trim();
+  const noteMatch = text.match(/\s*\.?\s*(Revisión narrativa de fuentes publicadas\.?\s*)$/i);
+  const note = noteMatch?.[1]?.trim().replace(/\.$/, "") ?? "";
+  if (noteMatch) text = text.slice(0, noteMatch.index).trim().replace(/[.;\s]+$/, "");
+
+  const references = text.split(/\s*;\s*/).map((reference) => reference.trim().replace(/[.;\s]+$/, "")).filter(Boolean);
+  return references.length ? { references, note } : null;
+}
+
+export function researchPublicSourceLabel(source: string | null | undefined) {
+  if (extractResearchReferences(source)) return "";
+  return source ?? "";
+}
+
+export function researchPublicBody(body: string, source: string | null | undefined) {
+  const bibliography = extractResearchReferences(source);
+  if (!bibliography) return body;
+
+  const references = bibliography.references.map((reference) => `- ${reference}`).join("\n");
+  const note = bibliography.note ? `\n\n${bibliography.note}.` : "";
+  return `${body.trim()}\n\n## Fuentes consultadas\n\n${references}${note}`;
+}
+
 export async function getResearchItems() {
   const items = await db.content.findMany({
     where: {

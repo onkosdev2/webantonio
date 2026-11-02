@@ -58,7 +58,7 @@ export default async function InvestigacionPage({
         title: item.title,
         summary: item.summary,
         image: item.image,
-        eyebrow: item.source || "Investigación",
+        eyebrow: "Investigación",
         meta: (item.meta ?? []).map((metaItem) =>
           typeof metaItem === "string"
             ? {
