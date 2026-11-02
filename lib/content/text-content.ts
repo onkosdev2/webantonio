@@ -1,6 +1,7 @@
 import { ContentStatus, ContentType } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
+import { firstEditorialBodyImage } from "@/lib/content/editorial-card-image";
 import {
   publicContentCacheOptions,
   revivePublicationDates
@@ -71,13 +72,14 @@ async function queryPublishedTextContentItems(type: SupportedTextType) {
       title: true,
       slug: true,
       summary: true,
+      body: true,
       source: true,
       tags: true,
       publishedAt: true,
       updatedAt: true,
       media: {
-        where: { isFeatured: true, mediaType: "image", isSensitive: false },
-        orderBy: { createdAt: "desc" },
+        where: { mediaType: "image", isSensitive: false, isGalleryUpload: false },
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "asc" }],
         take: 1,
         select: { storagePath: true, altText: true, title: true, origin: true }
       }
@@ -96,7 +98,7 @@ async function queryPublishedTextContentItems(type: SupportedTextType) {
       src: item.media[0].storagePath,
       alt: item.media[0].altText || item.media[0].title || item.title,
       origin: item.media[0].origin
-    } : null,
+    } : firstEditorialBodyImage(item.body),
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   }));
