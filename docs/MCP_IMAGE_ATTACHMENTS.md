@@ -1,4 +1,4 @@
-# Adjuntos de imágenes en ONKOS MCP v2.3.0
+# Adjuntos de imágenes en ONKOS MCP v3.0.0
 
 `manage_publication_images` recibe referencias de archivos sin que ChatGPT
 convierta las imágenes a Base64. El servidor descarga bytes, comprueba la imagen
@@ -259,8 +259,8 @@ ni que un enlace temporal real permita descarga directa sin redirecciones.
 | Archivo | Cambio |
 | --- | --- |
 | `lib/content/services/publication-images.ts` | Schema de entrada, correspondencia archivos/metadatos, validación previa, límites y resultado detallado. |
-| `lib/mcp/chatgpt-server.ts` | Descriptor `openai/fileParams`, instrucciones, errores y versión 2.3.0. |
-| `app/mcp/route.ts` | Versión anunciada 2.3.0; transporte y autenticación conservados. |
+| `lib/mcp/chatgpt-server.ts` | Descriptor `openai/fileParams`, instrucciones y versión 3.0.0. |
+| `app/mcp/route.ts` | Versión anunciada 3.0.0; transporte y autenticación conservados. |
 | `lib/storage/publication-attachments.ts` (nuevo) | Referencias y descarga segura con protección SSRF, streaming y timeout. |
 | `lib/storage/publication-image-errors.ts` (nuevo) | Errores tipados y límites de tamaño compartidos. |
 | `lib/storage/publication-images.ts` | Validación real de formatos, procesamiento de copias y compatibilidad Base64. |

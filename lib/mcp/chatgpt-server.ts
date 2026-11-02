@@ -30,6 +30,34 @@ import {
   reusableNewsImageSchema,
   searchNews
 } from "@/lib/mcp/news";
+import {
+  archiveEditorialContent,
+  archiveEditorialContentSchema,
+  contentSlugSchema,
+  createEditorialContent,
+  createEditorialContentSchema,
+  getEditorialContent,
+  listEditorialContent,
+  listEditorialContentSchema,
+  publishEditorialContent,
+  publishEditorialContentSchema,
+  updateEditorialContent,
+  updateEditorialContentSchema
+} from "@/lib/mcp/editorial-content";
+import {
+  archiveGalleryAsset,
+  archiveGalleryAssetSchema,
+  createGalleryAsset,
+  createGalleryAssetSchema,
+  getGalleryAsset,
+  galleryAssetIdSchema,
+  listGalleryAssets,
+  listGalleryAssetsSchema,
+  publishGalleryAsset,
+  publishGalleryAssetSchema,
+  updateGalleryAsset,
+  updateGalleryAssetSchema
+} from "@/lib/mcp/gallery-assets";
 
 const ok = (value: unknown, message: string) => ({
   content: [{ type: "text" as const, text: message }],
@@ -93,7 +121,7 @@ function resolveClinicalCaseSearch(query: string, requestedStatus: ClinicalCaseS
 }
 
 export function createChatGptMcpServer(options: { publicationImages?: PublicationImagesOptions } = {}) {
-  const server = new McpServer({ name: "onkos-content-publisher", version: "2.3.0" }, {
+  const server = new McpServer({ name: "onkos-content-publisher", version: "3.0.0" }, {
     instructions: [
       "Para corregir contenido usa update_clinical_case o update_news_item con changes parciales; no recrees la publicación. Mantén el slug y el estado. Recupera updated_at para expectedUpdatedAt. Editar contenido publicado requiere una orden explícita y confirmation=ACTUALIZAR_PUBLICADO.",
       "Para retirar contenido usa archive_clinical_case o archive_news_item con confirmation=ARCHIVAR solo por orden explícita. El archivado conserva datos y medios; no existe borrado físico en MCP.",
@@ -112,7 +140,9 @@ export function createChatGptMcpServer(options: { publicationImages?: Publicatio
       "Crea toda noticia primero con create_news_draft. Después busca una imagen editorial pertinente con find_reusable_news_images: si existe una imagen no sensible y claramente relacionada, asóciala con attach_existing_news_image; si no existe, genera una con generate_news_image.",
       "Antes de publicar una noticia, revísala con get_news_item y comprueba que la fuente, el enlace y la imagen principal correspondan al contenido.",
       "Publica una noticia únicamente ante una orden explícita del usuario y enviando confirmation=PUBLICAR a publish_news. Si falta la fuente o la imagen, conserva el borrador y explica qué falta.",
-      "Usa publish_news_automated exclusivamente dentro de una automatización recurrente que ya tenga autorización para publicar. Esa herramienta recibe contenido y fuente validados, crea o recupera el borrador por URL, genera y asocia la portada, y publica sin confirmation=PUBLICAR. Nunca la uses como atajo en una conversación interactiva."
+      "Usa publish_news_automated exclusivamente dentro de una automatización recurrente que ya tenga autorización para publicar. Esa herramienta recibe contenido y fuente validados, crea o recupera el borrador por URL, genera y asocia la portada, y publica sin confirmation=PUBLICAR. Nunca la uses como atajo en una conversación interactiva.",
+      "Para Editorial, Investigación y Reflexiones, redacta con el usuario en ChatGPT y usa create_editorial_content para guardar un borrador. Esta herramienta no genera texto. Revisa con get_editorial_content; publicar requiere orden explícita y confirmation=PUBLICAR.",
+      "Para la Galería independiente usa create_gallery_image con un adjunto del usuario, título, descripción y confirmación de anonimización obligatorios. Se guarda privada; publica solo ante orden explícita con publish_gallery_image. Puedes vincular opcionalmente un caso clínico ya publicado. La publicación de una foto independiente no publica el caso ni otras imágenes."
     ].join(" ")
   });
 
@@ -358,6 +388,91 @@ export function createChatGptMcpServer(options: { publicationImages?: Publicatio
       return { isError: true, content: [{ type: "text" as const, text: message }], structuredContent: { success: false, error: { code, message } } };
     }
   });
+
+  server.registerTool("list_editorial_content", {
+    title: "Listar editoriales, investigaciones o reflexiones",
+    description: "Busca contenido de una de estas secciones por estado o texto.",
+    inputSchema: listEditorialContentSchema,
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => listEditorialContent(input), (value) => `Encontré ${value.items.length} piezas.`));
+
+  server.registerTool("get_editorial_content", {
+    title: "Revisar contenido editorial",
+    description: "Recupera el contenido completo por sección y slug para revisarlo antes de publicarlo.",
+    inputSchema: contentSlugSchema,
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => getEditorialContent(input), (value) => `Contenido recuperado: ${value.title}.`));
+
+  server.registerTool("create_editorial_content", {
+    title: "Crear borrador editorial, investigación o reflexión",
+    description: "Guarda el texto redactado en ChatGPT como DRAFT o PENDING_REVIEW. No genera texto ni publica.",
+    inputSchema: createEditorialContentSchema,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+  }, (input) => guarded(() => createEditorialContent(input), (value) => `Borrador creado: ${value.slug}.`));
+
+  server.registerTool("update_editorial_content", {
+    title: "Actualizar contenido editorial",
+    description: "Actualiza campos parciales de una editorial, investigación o reflexión. El contenido publicado requiere confirmation=ACTUALIZAR_PUBLICADO.",
+    inputSchema: updateEditorialContentSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => updateEditorialContent(input), (value) => `Contenido actualizado: ${value.slug}.`));
+
+  server.registerTool("publish_editorial_content", {
+    title: "Publicar editorial, investigación o reflexión",
+    description: "Publica únicamente tras una orden explícita y confirmation=PUBLICAR.",
+    inputSchema: publishEditorialContentSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => publishEditorialContent(input), (value) => `Publicado: ${value.public_url}`));
+
+  server.registerTool("archive_editorial_content", {
+    title: "Archivar contenido editorial",
+    description: "Retira de la web una editorial, investigación o reflexión; conserva su contenido.",
+    inputSchema: archiveEditorialContentSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => archiveEditorialContent(input), (value) => `Archivado: ${value.slug}.`));
+
+  server.registerTool("list_gallery_images", {
+    title: "Listar imágenes MCP de la galería",
+    description: "Lista solo imágenes independientes administradas mediante MCP; permite filtrar privadas o publicadas.",
+    inputSchema: listGalleryAssetsSchema,
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => listGalleryAssets(input), (value) => `Encontré ${value.items.length} imágenes MCP.`));
+
+  server.registerTool("get_gallery_image", {
+    title: "Revisar imagen de galería",
+    description: "Recupera metadatos, estado y vínculo opcional de una imagen independiente cargada por MCP.",
+    inputSchema: galleryAssetIdSchema,
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => getGalleryAsset(input), (value) => `Imagen recuperada: ${value.title}.`));
+
+  server.registerTool("create_gallery_image", {
+    title: "Cargar imagen independiente a Galería",
+    description: "Carga una imagen adjunta por el usuario con título y descripción obligatoria. Se guarda privada. Puede vincularse a un caso clínico publicado.",
+    inputSchema: createGalleryAssetSchema,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    _meta: { "openai/fileParams": ["files"] }
+  }, (input) => guarded(() => createGalleryAsset(input, options.publicationImages), (value) => `Imagen guardada como privada: ${value.id}.`));
+
+  server.registerTool("update_gallery_image", {
+    title: "Actualizar imagen privada de Galería",
+    description: "Actualiza título, descripción o vínculo a un caso publicado. Solo modifica imágenes aún privadas.",
+    inputSchema: updateGalleryAssetSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => updateGalleryAsset(input), (value) => `Imagen actualizada: ${value.id}.`));
+
+  server.registerTool("publish_gallery_image", {
+    title: "Publicar una imagen en Galería",
+    description: "Hace pública exclusivamente la imagen indicada, que fue cargada mediante MCP. Requiere confirmation=PUBLICAR.",
+    inputSchema: publishGalleryAssetSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => publishGalleryAsset(input), (value) => `Imagen publicada en Galería: ${value.image_url}`));
+
+  server.registerTool("archive_gallery_image", {
+    title: "Retirar imagen de Galería",
+    description: "Vuelve privada una imagen independiente cargada mediante MCP. Requiere confirmation=ARCHIVAR.",
+    inputSchema: archiveGalleryAssetSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
+  }, (input) => guarded(() => archiveGalleryAsset(input), (value) => `Imagen retirada de Galería: ${value.id}.`));
 
   return server;
 }

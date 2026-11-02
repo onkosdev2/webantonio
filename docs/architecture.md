@@ -54,8 +54,12 @@ memoria; varias réplicas requieren Redis o un bus de eventos compartido.
 
 ## MCP
 
-`POST /mcp` expone 22 herramientas: diez de casos clínicos, once de noticias y
-una compartida para portada y galería. Las mutaciones viven en
+`POST /mcp` expone 34 herramientas: casos clínicos, noticias, una operación
+compartida de imágenes de publicaciones, contenido editorial para editoriales,
+investigación y reflexiones, e imágenes independientes de Galería. Estas últimas
+se identifican por `MediaAsset.origin = "mcp_gallery"`, se crean privadas y la
+galería pública solo las muestra al publicarlas por MCP. Las imágenes del panel y
+las galerías asociadas a publicaciones quedan fuera de `/galeria`. Las mutaciones viven en
 `lib/content/services`: actualizaciones parciales, control de versión opcional,
 confirmación al editar publicados y archivado lógico. Las nuevas mutaciones
 serializan los cambios de cada publicación mediante un bloqueo de fila.

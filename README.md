@@ -88,14 +88,21 @@ migración de datos, R2, variables de entorno y requisitos de autenticación MCP
 - La base principal local usa PostgreSQL 16 dentro de Docker
 - La antigua SQLite se conserva únicamente como respaldo y fuente de migración
 
-## MCP para ChatGPT: casos clínicos y noticias
+## MCP para ChatGPT: contenido clínico y editorial
 
 El endpoint estándar es `http://localhost:3000/mcp`. Expone herramientas para
 buscar y revisar casos, crear borradores, configurar entre 3 y 5 figuras,
 generar cada imagen, definir la portada y publicar. La publicación nunca es un
 efecto secundario: exige una llamada separada con la confirmación `PUBLICAR`.
 
-La versión `2.3.0` expone 22 herramientas. Incluye edición parcial y archivado
+La versión `3.0.0` expone 34 herramientas. Incluye casos y noticias; creación,
+consulta, actualización, publicación y archivo de editoriales, investigaciones
+y reflexiones; y gestión de imágenes independientes de Galería. Estas imágenes
+se guardan privadas, requieren descripción y confirmación de anonimización,
+pueden vincularse opcionalmente a un caso publicado y solo se muestran en
+`/galeria` si se publican explícitamente desde MCP. Las fotos del panel y las
+galerías de publicaciones quedan fuera del listado público. Incluye edición
+parcial y archivado
 lógico para ambas entidades, más `manage_publication_images`: agregar,
 reemplazar, ordenar o quitar imágenes del carrusel final y cambiar la portada
 de forma independiente. Las imágenes del carrusel deben cargarse específicamente para esa

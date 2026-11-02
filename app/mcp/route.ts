@@ -11,8 +11,8 @@ export const maxDuration = 300;
 
 const MODERN_PROTOCOL_VERSION = "2026-07-28";
 const SDK_PROTOCOL_VERSION = "2025-11-25";
-const SERVER_INFO = { name: "onkos-content-publisher", version: "2.3.0" };
-const READ_TOOLS = new Set(["list_recent_clinical_cases", "search_clinical_cases", "get_clinical_case", "list_recent_news", "search_news", "get_news_item", "find_reusable_news_images"]);
+const SERVER_INFO = { name: "onkos-content-publisher", version: "3.0.0" };
+const READ_TOOLS = new Set(["list_recent_clinical_cases", "search_clinical_cases", "get_clinical_case", "list_recent_news", "search_news", "get_news_item", "find_reusable_news_images", "list_editorial_content", "get_editorial_content", "list_gallery_images", "get_gallery_image"]);
 
 function modernRequestVersion(rpcRequest: {
   params?: { _meta?: Record<string, unknown> };
@@ -154,7 +154,7 @@ async function handle(request: Request) {
           supportedVersions: [MODERN_PROTOCOL_VERSION],
           capabilities: { tools: {} },
           _meta: { "io.modelcontextprotocol/serverInfo": SERVER_INFO },
-          instructions: "Servidor MCP de ONKOS para casos clínicos y noticias de actualidad oncológica.",
+          instructions: "Servidor MCP de ONKOS para casos, noticias, editoriales, investigación, reflexiones e imágenes independientes de galería.",
           ttlMs: 60_000,
           cacheScope: "private"
         }

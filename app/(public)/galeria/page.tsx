@@ -21,8 +21,7 @@ export default async function GaleriaPage({ searchParams }: GaleriaPageProps) {
           <span className="eyebrow">Media Clinica</span>
           <h1 className="section-title">Galeria Clinica</h1>
           <p className="section-copy">
-            Imagenes, videos y material docente seleccionados para lectura clinica,
-            con visibilidad controlada desde el panel privado.
+            Imágenes clínicas compartidas y descritas para lectura docente.
           </p>
         </section>
 
@@ -31,10 +30,7 @@ export default async function GaleriaPage({ searchParams }: GaleriaPageProps) {
           {items.length > 0 ? (
             <div className="public-gallery-grid">
               {items.map((item, index) => {
-                const description =
-                  item.altText && item.altText.trim().toLowerCase() !== item.title.trim().toLowerCase()
-                    ? item.altText
-                    : "";
+                const description = item.altText?.trim() ?? "";
 
                 return (
                   <article
@@ -64,10 +60,7 @@ export default async function GaleriaPage({ searchParams }: GaleriaPageProps) {
             <article className="panel public-empty-state">
               <span className="kicker">Sin activos públicos</span>
               <h2>Todavía no hay material visible en galería.</h2>
-              <p>
-                Registra activos desde el panel y deja desmarcada la opción de
-                contenido sensible para que aparezcan aquí.
-              </p>
+              <p>Las imágenes aparecerán aquí cuando se carguen y publiquen mediante el flujo MCP de Galería.</p>
             </article>
           )}
           {pageCount > 1 ? (

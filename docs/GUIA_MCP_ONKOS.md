@@ -2,17 +2,17 @@
 
 ## 1. Propósito
 
-El MCP de ONKOS conecta ChatGPT con el archivo editorial de casos clínicos y noticias de Actualidad. Permite consultar contenido, crear borradores, preparar imágenes y publicar mediante flujos interactivos o automatizaciones preautorizadas.
+El MCP de ONKOS conecta ChatGPT con casos clínicos, noticias de Actualidad, editoriales, investigación, reflexiones e imágenes independientes de Galería. Permite consultar contenido, guardar borradores y publicar mediante flujos explícitos.
 
 El servidor conectado a ChatGPT se identifica como:
 
 - Nombre técnico: `onkos-content-publisher`
-- Versión actual: `2.3.0`
+- Versión actual: `3.0.0`
 - Endpoint local: `http://localhost:3000/mcp`
 - Transporte: Streamable HTTP con OAuth en producción; túnel opcional en local
-- Número de acciones del catálogo: 22
+- Número de acciones del catálogo: 34
 
-El diseño del flujo prioriza cuatro principios:
+El diseño del flujo prioriza estos principios:
 
 1. Todo caso nuevo comienza como borrador.
 2. La anonimización debe ser confirmada y validada.
@@ -100,7 +100,7 @@ Puedes publicar un caso únicamente cuando:
 
 ---
 
-## 3. Las 22 acciones disponibles
+## 3. Las 34 acciones disponibles
 
 ### 3.1 `list_recent_clinical_cases`
 
@@ -411,6 +411,25 @@ Límites: 10 MB por archivo, 20 MB por lote, 20 imágenes por llamada y 30 en la
 
 El sitio muestra la galería **al final del cuerpo**, en un carrusel manual con botones, teclado y desplazamiento táctil. No recorta las imágenes clínicas ni reproduce diapositivas automáticamente. Portada, figuras del cuerpo y galería son independientes. Redefinir significa cambiar la selección, no retocar píxeles con IA.
 
+### 3.23–3.28 `list_editorial_content`, `get_editorial_content`, `create_editorial_content`, `update_editorial_content`, `publish_editorial_content`, `archive_editorial_content`
+
+Estas herramientas administran Editorial, Investigación y Reflexiones. Cada llamada incluye `type: "editorial" | "research" | "reflection"`. ChatGPT redacta el texto en la conversación; MCP lo guarda, recupera, edita y publica. No se invoca una segunda generación de IA dentro del servidor.
+
+- `list_editorial_content`: filtra por estado y texto; límite 50.
+- `get_editorial_content`: recupera el cuerpo, resumen, etiquetas, estado, medios y enlaces por `type` + `slug`.
+- `create_editorial_content`: requiere título, resumen y cuerpo; crea `DRAFT` o `PENDING_REVIEW` y nunca publica.
+- `update_editorial_content`: cambia campos parciales. Para contenido publicado requiere `confirmation: "ACTUALIZAR_PUBLICADO"`.
+- `publish_editorial_content`: requiere orden explícita y `confirmation: "PUBLICAR"`.
+- `archive_editorial_content`: conserva datos y requiere `confirmation: "ARCHIVAR"`.
+
+### 3.29–3.34 Imágenes independientes de Galería
+
+Estas seis herramientas operan solo con imágenes independientes creadas mediante MCP: `list_gallery_images`, `get_gallery_image`, `create_gallery_image`, `update_gallery_image`, `publish_gallery_image` y `archive_gallery_image`.
+
+`create_gallery_image` recibe exactamente un adjunto `files`, un `title`, una `description` accesible obligatoria y `anonymizedConfirmed: true`. La imagen se procesa como WebP sin metadatos EXIF y queda privada. Puede indicarse `caseSlug`, pero el servicio solo acepta casos clínicos ya publicados. La relación sirve para contextualizar la imagen en Galería; no la añade a la galería interna del caso.
+
+Solo `publish_gallery_image` con `confirmation: "PUBLICAR"` hace visible esa imagen individual. `archive_gallery_image` la vuelve privada mediante `confirmation: "ARCHIVAR"`. La ruta pública `/galeria` filtra por `origin="mcp_gallery"` e imágenes no sensibles: omite activos del panel, portadas, figuras generadas y galerías de publicaciones. Publicar una foto no publica ninguna otra imagen ni modifica el estado del caso asociado.
+
 ## 4. Flujo editorial recomendado
 
 ### Dos modos desde una sola instrucción
@@ -624,7 +643,7 @@ La versión actual no expone acciones de ChatGPT para:
 - mover un caso a `PENDING_REVIEW`;
 - ejecutar automáticamente todo el lote de imágenes con una única llamada;
 
-Estas operaciones deben realizarse en el panel o requieren ampliar el contrato MCP.
+Estas operaciones puntuales deben realizarse en el panel o requieren ampliar el contrato MCP.
 
 ---
 
@@ -632,7 +651,7 @@ Estas operaciones deben realizarse en el panel o requieren ampliar el contrato M
 
 ### Complemento de ChatGPT: `/mcp`
 
-Es el servidor MCP estándar conectado mediante OAuth en producción o Secure MCP Tunnel en desarrollo local. Expone 22 acciones para casos clínicos y noticias de Actualidad.
+Es el servidor MCP estándar conectado mediante OAuth en producción o Secure MCP Tunnel en desarrollo local. Expone 34 acciones para casos clínicos, noticias, editoriales, investigación, reflexiones e imágenes independientes de Galería.
 
 ### Consola administrativa: `/panel/mcp`
 
@@ -694,7 +713,7 @@ Cuando se agregue o cambie una acción:
 2. abre la configuración del complemento ONKOS;
 3. actualiza o reconecta el complemento;
 4. si no hay opción de actualización, elimínalo y créalo de nuevo usando el mismo túnel;
-5. confirma que ChatGPT muestre las 22 acciones actuales, incluidas las cinco nuevas de edición, archivado e imágenes;
+5. confirma que ChatGPT muestre las 34 acciones actuales;
 6. realiza la prueba en un chat nuevo.
 
 No es necesario crear un túnel nuevo para actualizar el catálogo de herramientas.

@@ -69,6 +69,8 @@ export async function getGalleryAssetById(id: string) {
 export async function getPublicGalleryAssets() {
   const items = await db.mediaAsset.findMany({
     where: {
+      origin: "mcp_gallery",
+      mediaType: "image",
       isSensitive: false,
       OR: [
         {
@@ -108,6 +110,8 @@ export async function getPublicGalleryAssets() {
 
 export async function getPublicGalleryPage(page: number, pageSize = PUBLIC_ARCHIVE_PAGE_SIZE) {
   const where = {
+    origin: "mcp_gallery",
+    mediaType: "image",
     isSensitive: false,
     OR: [
       { contentId: null },
