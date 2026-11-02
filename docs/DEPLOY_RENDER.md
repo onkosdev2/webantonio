@@ -152,6 +152,7 @@ Para conexión HTTPS directa, el destino es `https://<dominio>/mcp` y **no hace
 falta ejecutar un túnel**. La implementación incluye:
 
 - OAuth compatible con MCP, consentimiento mediante la sesión del panel y validación de tokens.
+- Metadata OAuth publica `offline_access`, y el servidor admite ese scope para renovar la conexión de ChatGPT.
 - Metadata de recurso y autorización con URLs HTTPS reales, no localhost.
 - Scopes de lectura/escritura, challenge `WWW-Authenticate` y flujo de vinculación.
 - Que una petición sin credenciales no pueda leer borradores ni publicar.

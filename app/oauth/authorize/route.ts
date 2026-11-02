@@ -97,8 +97,8 @@ export async function GET(request: Request) {
   <main class="card">
     <span class="kicker">Conexión segura</span>
     <h1>Autorizar MCP de ONKOS</h1>
-    <p><strong>${escapeHtml(client.clientName)}</strong> solicita conectarse al archivo editorial para consultar y administrar casos clínicos y noticias.</p>
-    <div class="permissions"><strong>Permisos solicitados</strong>Leer contenido y ejecutar herramientas editoriales, incluidas las acciones de creación y publicación que requieran confirmación.</div>
+    <p><strong>${escapeHtml(client.clientName)}</strong> solicita conectarse al sitio de ONKOS.</p>
+    <div class="permissions"><strong>Permisos solicitados</strong>Leer contenido y ejecutar herramientas editoriales. Las acciones de publicación requieren confirmación explícita.</div>
     <p class="account">Cuenta: ${escapeHtml(user.email)}</p>
     <form method="post" action="/oauth/authorize">
       <input type="hidden" name="request_token" value="${escapeHtml(requestToken)}">

@@ -626,7 +626,7 @@ La confirmación `anonymizedConfirmed: true` debe corresponder a una revisión r
 
 ### Autenticación actual
 
-En desarrollo local, `/mcp` acepta solicitudes sin autenticación de aplicación. El acceso local desde ChatGPT puede limitarse mediante Secure MCP Tunnel. En producción, el endpoint implementa OAuth 2.1 con PKCE y reutiliza la sesión del panel para mostrar consentimiento. También acepta `MCP_API_TOKEN` para clientes técnicos compatibles. `MCP_ALLOW_UNAUTHENTICATED=true` debe usarse únicamente detrás de un túnel privado, nunca en la URL pública.
+En desarrollo local, `/mcp` acepta solicitudes sin autenticación de aplicación. El acceso local desde ChatGPT puede limitarse mediante Secure MCP Tunnel. En producción, el endpoint implementa OAuth 2.1 con PKCE y reutiliza la sesión del panel para mostrar consentimiento. El metadata OAuth anuncia `offline_access` y emite refresh tokens para mantener la conexión. También acepta `MCP_API_TOKEN` para clientes técnicos compatibles. `MCP_ALLOW_UNAUTHENTICATED=true` debe usarse únicamente detrás de un túnel privado, nunca en la URL pública.
 
 No incluyas claves de OpenAI, NVIDIA, túnel o almacenamiento en conversaciones, capturas ni este documento.
 

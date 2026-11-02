@@ -1,4 +1,4 @@
-import { MCP_SCOPES, siteUrl } from "@/lib/mcp/oauth";
+import { MCP_OAUTH_SCOPES, siteUrl } from "@/lib/mcp/oauth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export function GET() {
       grant_types_supported: ["authorization_code", "refresh_token"],
       token_endpoint_auth_methods_supported: ["none"],
       code_challenge_methods_supported: ["S256"],
-      scopes_supported: MCP_SCOPES
+      scopes_supported: MCP_OAUTH_SCOPES
     },
     { headers: { "Cache-Control": "public, max-age=300" } }
   );

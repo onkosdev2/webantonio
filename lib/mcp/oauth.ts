@@ -7,6 +7,7 @@ import {
 import { db } from "@/lib/db";
 
 export const MCP_SCOPES = ["mcp:read", "mcp:write"] as const;
+export const MCP_OAUTH_SCOPES = [...MCP_SCOPES, "offline_access"] as const;
 
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 180;
@@ -146,9 +147,9 @@ export function protectedResourceMetadataUrl() {
 export function normalizeScope(value?: string | null) {
   const requested = value?.trim()
     ? [...new Set(value.trim().split(/\s+/))]
-    : [...MCP_SCOPES];
+    : [...MCP_OAUTH_SCOPES];
 
-  if (requested.some((scope) => !MCP_SCOPES.includes(scope as (typeof MCP_SCOPES)[number]))) {
+  if (requested.some((scope) => !MCP_OAUTH_SCOPES.includes(scope as (typeof MCP_OAUTH_SCOPES)[number]))) {
     return null;
   }
 
