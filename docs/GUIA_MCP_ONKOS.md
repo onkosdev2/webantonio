@@ -417,14 +417,18 @@ Estas herramientas administran Editorial, Investigación y Reflexiones. Cada lla
 
 - `list_editorial_content`: filtra por estado y texto; límite 50.
 - `get_editorial_content`: recupera el cuerpo, resumen, etiquetas, estado, medios y enlaces por `type` + `slug`.
-- `create_editorial_content`: requiere título, resumen y cuerpo; crea `DRAFT` o `PENDING_REVIEW` y nunca publica. Para `type: "reflection"`, también requiere exactamente un adjunto en `files`, `imageTitle` e `imageAltText`; guarda la imagen como portada principal.
+- `create_editorial_content`: requiere título, resumen, cuerpo y una imagen principal; crea `DRAFT` o `PENDING_REVIEW` y nunca publica. Para cualquiera de los tres `type`, adjunta exactamente un archivo en `files` e indica `imageTitle` e `imageAltText`.
 - `update_editorial_content`: cambia campos parciales. Para contenido publicado requiere `confirmation: "ACTUALIZAR_PUBLICADO"`.
 - `publish_editorial_content`: requiere orden explícita y `confirmation: "PUBLICAR"`.
 - `archive_editorial_content`: conserva datos y requiere `confirmation: "ARCHIVAR"`.
 
-Toda reflexión necesita una imagen principal para publicarse. `publish_editorial_content` rechaza reflexiones sin ella. `set_reflection_image` agrega o cambia la imagen de una reflexión existente: recibe `slug`, un adjunto `files`, `imageTitle` e `imageAltText`; cambiarla en contenido publicado requiere `confirmation: "ACTUALIZAR_PUBLICADO"`. El archivo se valida, convierte a WebP y aparece en la tarjeta de `/reflexiones` y en la página del artículo.
+Editoriales, investigaciones y reflexiones necesitan una imagen principal para publicarse. `publish_editorial_content` rechaza contenido sin ella. `set_editorial_content_image` agrega o cambia la imagen de un contenido existente: recibe `type`, `slug`, un adjunto `files`, `imageTitle` e `imageAltText`; cambiarla en contenido publicado requiere `confirmation: "ACTUALIZAR_PUBLICADO"`. `set_reflection_image` se conserva como alias compatible para reflexiones. El archivo se valida, convierte a WebP y aparece en la tarjeta y página pública de cada sección.
 
-### 3.30–3.35 Imágenes independientes de Galería
+### 3.29–3.30 Herramientas de imagen editorial
+
+`set_editorial_content_image` gestiona la imagen principal de Editorial, Investigación o Reflexión existente. `set_reflection_image` es un alias anterior que sigue disponible para Reflexión.
+
+### 3.31–3.36 Imágenes independientes de Galería
 
 Estas seis herramientas operan solo con imágenes independientes creadas mediante MCP: `list_gallery_images`, `get_gallery_image`, `create_gallery_image`, `update_gallery_image`, `publish_gallery_image` y `archive_gallery_image`.
 
@@ -653,7 +657,7 @@ Estas operaciones puntuales deben realizarse en el panel o requieren ampliar el 
 
 ### Complemento de ChatGPT: `/mcp`
 
-Es el servidor MCP estándar conectado mediante OAuth en producción o Secure MCP Tunnel en desarrollo local. Expone 35 acciones para casos clínicos, noticias, editoriales, investigación, reflexiones e imágenes independientes de Galería.
+Es el servidor MCP estándar conectado mediante OAuth en producción o Secure MCP Tunnel en desarrollo local. Expone 36 acciones para casos clínicos, noticias, editoriales, investigación, reflexiones e imágenes independientes de Galería.
 
 ### Consola administrativa: `/panel/mcp`
 

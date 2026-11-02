@@ -54,6 +54,7 @@ export default async function InvestigacionPublicaPage({
       title={item.title}
       summary={item.summary}
       body={item.body}
+      featuredImage={item.featuredImage}
       backHref="/investigacion"
       backLabel="Volver a investigación"
       editHref={`/panel/investigacion/${item.slug}`}

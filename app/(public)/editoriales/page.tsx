@@ -21,6 +21,7 @@ export default async function EditorialesPage({
     href: `/editoriales/${item.slug}`,
     title: item.title,
     summary: item.summary,
+    image: item.image,
     kicker: "Editorial",
     type: "editorial" as const,
     tags: item.tags,
@@ -56,6 +57,7 @@ export default async function EditorialesPage({
         href: item.href,
         title: item.title,
         summary: item.summary,
+        image: item.image,
         eyebrow: item.source || "Editorial",
         meta: (item.meta ?? []).map((metaItem) =>
           typeof metaItem === "string"

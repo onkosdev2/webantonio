@@ -4,7 +4,7 @@ El servidor `onkos-content-publisher` v3.0.0 se expone en `/mcp` mediante
 Streamable HTTP. Su implementación está en `app/mcp/route.ts` y
 `lib/mcp/chatgpt-server.ts`.
 
-## Catálogo oficial: 35 herramientas
+## Catálogo oficial: 36 herramientas
 
 | Entidad | Herramientas |
 | --- | --- |
@@ -12,7 +12,7 @@ Streamable HTTP. Su implementación está en `app/mcp/route.ts` y
 | Noticias (11) | `list_recent_news`, `search_news`, `get_news_item`, `create_news_draft`, `update_news_item`, `archive_news_item`, `find_reusable_news_images`, `attach_existing_news_image`, `generate_news_image`, `publish_news`, `publish_news_automated` |
 | Ambas (1) | `manage_publication_images` |
 | Editorial, Investigación y Reflexiones (6) | `list_editorial_content`, `get_editorial_content`, `create_editorial_content`, `update_editorial_content`, `publish_editorial_content`, `archive_editorial_content` |
-| Imágenes de Reflexiones (1) | `set_reflection_image` |
+| Imágenes editoriales (2) | `set_editorial_content_image`, `set_reflection_image` (alias compatible) |
 | Galería independiente (6) | `list_gallery_images`, `get_gallery_image`, `create_gallery_image`, `update_gallery_image`, `publish_gallery_image`, `archive_gallery_image` |
 
 La edición conserva campos omitidos, slug y estado. El archivado es lógico y no
@@ -27,7 +27,7 @@ Confirmaciones: `PUBLICAR` para publicación interactiva, `ARCHIVAR` para retira
 contenido y `ACTUALIZAR_PUBLICADO` en las nuevas herramientas de edición e
 imágenes sobre publicaciones visibles. `expectedUpdatedAt` permite detectar
 versiones obsoletas. Los casos requieren confirmación humana de anonimización.
-Las reflexiones requieren una imagen principal adjunta al crearlas por MCP; `set_reflection_image` agrega o cambia la imagen de una reflexión existente. No se puede publicar una reflexión sin imagen principal.
+Editoriales, investigaciones y reflexiones requieren una imagen principal adjunta al crearlas por MCP. `set_editorial_content_image` agrega o cambia la imagen de cualquiera de esas publicaciones; `set_reflection_image` se conserva como alias compatible. No se puede publicar ninguna de las tres sin imagen principal.
 
 `publish_news_automated` sigue reservado a automatizaciones recurrentes
 preautorizadas. Los contratos completos están en

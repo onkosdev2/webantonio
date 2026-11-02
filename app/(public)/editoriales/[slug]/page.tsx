@@ -54,6 +54,7 @@ export default async function EditorialPublicaPage({
       title={item.title}
       summary={item.summary}
       body={item.body}
+      featuredImage={item.featuredImage}
       backHref="/editoriales"
       backLabel="Volver a editoriales"
       editHref={`/panel/editoriales/${item.slug}`}

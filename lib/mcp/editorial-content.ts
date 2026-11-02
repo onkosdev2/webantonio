@@ -44,6 +44,17 @@ export const setReflectionImageSchema = z.object({
   confirmation: z.literal("ACTUALIZAR_PUBLICADO").optional()
 }).strict();
 
+export const setEditorialContentImageSchema = z.object({
+  type: editorialContentTypeSchema,
+  slug: z.string().trim().min(1),
+  files: z.array(publicationAttachmentSchema).length(1).describe("Adjunta exactamente una imagen con files."),
+  imageTitle: z.string().trim().min(3).max(250),
+  imageAltText: z.string().trim().min(10).max(1000),
+  imageCaption: z.string().trim().max(2000).optional(),
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
+  confirmation: z.literal("ACTUALIZAR_PUBLICADO").optional()
+}).strict();
+
 export const updateEditorialContentSchema = z.object({
   type: editorialContentTypeSchema,
   slug: z.string().trim().min(1),
@@ -103,9 +114,8 @@ export async function getEditorialContent(input: unknown) {
 
 export async function createEditorialContent(input: unknown, options: PublicationImagesOptions = {}) {
   const args = createEditorialContentSchema.parse(input);
-  if (args.type === "reflection" && !args.files?.length) throw new Error("Las reflexiones requieren una imagen. Adjunta el archivo para crear el borrador.");
+  if (!args.files?.length) throw new Error("Editoriales, investigaciones y reflexiones requieren una imagen. Adjunta el archivo para crear el borrador.");
   if (args.files?.length && (!args.imageTitle || !args.imageAltText)) throw new Error("Al adjuntar una imagen indica imageTitle e imageAltText.");
-  if (args.type !== "reflection" && args.files?.length) throw new Error("La carga de imágenes por este flujo está habilitada para Reflexiones. Usa el panel para imágenes editoriales o de investigación.");
   const image = args.files?.[0]
     ? await resolvePublicationImage({ file: args.files[0] }, options.downloadAttachment ?? downloadPublicationAttachment)
     : null;
@@ -157,28 +167,33 @@ export async function createEditorialContent(input: unknown, options: Publicatio
   throw new Error("No se pudo crear el borrador.");
 }
 
-export async function setReflectionImage(input: unknown, options: PublicationImagesOptions = {}) {
-  const args = setReflectionImageSchema.parse(input);
+export async function setEditorialContentImage(input: unknown, options: PublicationImagesOptions = {}) {
+  const args = setEditorialContentImageSchema.parse(input);
   const current = await db.content.findUnique({ where: { slug: args.slug }, select: { id: true, type: true, status: true, updatedAt: true } });
-  if (!current || current.type !== ContentType.REFLECTION) throw new Error("No se encontró la reflexión solicitada.");
-  if (current.status === ContentStatus.ARCHIVED) throw new Error("La reflexión está archivada; restáurala desde el panel antes de editarla.");
-  if (args.expectedUpdatedAt && current.updatedAt.toISOString() !== new Date(args.expectedUpdatedAt).toISOString()) throw new Error("La reflexión cambió desde la última lectura. Recupérala de nuevo antes de editar.");
-  if (current.status === ContentStatus.PUBLISHED && args.confirmation !== "ACTUALIZAR_PUBLICADO") throw new Error("Cambiar la imagen de una reflexión publicada requiere confirmation=ACTUALIZAR_PUBLICADO.");
+  if (!current || current.type !== typeMap[args.type]) throw new Error("No se encontró el contenido editorial solicitado.");
+  if (current.status === ContentStatus.ARCHIVED) throw new Error("El contenido está archivado; restáuralo desde el panel antes de editarlo.");
+  if (args.expectedUpdatedAt && current.updatedAt.toISOString() !== new Date(args.expectedUpdatedAt).toISOString()) throw new Error("El contenido cambió desde la última lectura. Recupéralo de nuevo antes de editar.");
+  if (current.status === ContentStatus.PUBLISHED && args.confirmation !== "ACTUALIZAR_PUBLICADO") throw new Error("Cambiar la imagen de contenido publicado requiere confirmation=ACTUALIZAR_PUBLICADO.");
 
   const image = await resolvePublicationImage({ file: args.files[0] }, options.downloadAttachment ?? downloadPublicationAttachment);
   const storagePath = await storePublicationImage(image.bytes);
   const saved = await db.$transaction(async (tx) => {
     const latest = await tx.content.findUnique({ where: { id: current.id }, select: { type: true, status: true, updatedAt: true } });
-    if (!latest || latest.type !== ContentType.REFLECTION || latest.status === ContentStatus.ARCHIVED) throw new Error("La reflexión ya no está disponible para editar.");
-    if (args.expectedUpdatedAt && latest.updatedAt.toISOString() !== new Date(args.expectedUpdatedAt).toISOString()) throw new Error("La reflexión cambió durante la carga. Recupérala de nuevo antes de editar.");
-    if (latest.status === ContentStatus.PUBLISHED && args.confirmation !== "ACTUALIZAR_PUBLICADO") throw new Error("Cambiar la imagen de una reflexión publicada requiere confirmation=ACTUALIZAR_PUBLICADO.");
+    if (!latest || latest.type !== typeMap[args.type] || latest.status === ContentStatus.ARCHIVED) throw new Error("El contenido ya no está disponible para editar.");
+    if (args.expectedUpdatedAt && latest.updatedAt.toISOString() !== new Date(args.expectedUpdatedAt).toISOString()) throw new Error("El contenido cambió durante la carga. Recupéralo de nuevo antes de editar.");
+    if (latest.status === ContentStatus.PUBLISHED && args.confirmation !== "ACTUALIZAR_PUBLICADO") throw new Error("Cambiar la imagen de contenido publicado requiere confirmation=ACTUALIZAR_PUBLICADO.");
     await tx.mediaAsset.updateMany({ where: { contentId: current.id, mediaType: "image", isFeatured: true }, data: { isFeatured: false } });
     const asset = await tx.mediaAsset.create({ data: { contentId: current.id, title: args.imageTitle, altText: args.imageAltText, caption: args.imageCaption, storagePath, mediaType: "image", isSensitive: false, isFeatured: true, origin: "upload" } });
-    const item = await tx.content.update({ where: { id: current.id }, data: { updatedAt: new Date(), importLogs: { create: { source: "mcp:set_reflection_image", payloadType: "reflection", payloadSummary: `Imagen principal actualizada: ${args.imageTitle}`, state: "VALIDATED" } } } });
+    const item = await tx.content.update({ where: { id: current.id }, data: { updatedAt: new Date(), importLogs: { create: { source: "mcp:set_editorial_content_image", payloadType: args.type, payloadSummary: `Imagen principal actualizada: ${args.imageTitle}`, state: "VALIDATED" } } } });
     return { item, asset };
   });
-  revalidate("reflection", args.slug);
-  return { ...result(saved.item, "reflection"), image_id: saved.asset.id, image_url: saved.asset.storagePath, image_title: saved.asset.title };
+  revalidate(args.type, args.slug);
+  return { ...result(saved.item, args.type), image_id: saved.asset.id, image_url: saved.asset.storagePath, image_title: saved.asset.title };
+}
+
+export async function setReflectionImage(input: unknown, options: PublicationImagesOptions = {}) {
+  const args = setReflectionImageSchema.parse(input);
+  return setEditorialContentImage({ ...args, type: "reflection" }, options);
 }
 
 export async function updateEditorialContent(input: unknown) {
@@ -199,10 +214,8 @@ export async function publishEditorialContent(input: unknown) {
   if (!current || current.type !== typeMap[args.type]) throw new Error("No se encontró el contenido solicitado.");
   if (current.status === ContentStatus.ARCHIVED) throw new Error("No se puede publicar contenido archivado.");
   if (current.title.trim().length < 5 || current.summary.trim().length < 20 || current.body.trim().length < 50) throw new Error("Completa título, resumen y cuerpo antes de publicar.");
-  if (args.type === "reflection") {
-    const image = await db.mediaAsset.findFirst({ where: { contentId: current.id, mediaType: "image", isFeatured: true, isSensitive: false, isGalleryUpload: false }, select: { id: true } });
-    if (!image) throw new Error("No se puede publicar una reflexión sin imagen principal. Usa set_reflection_image y vuelve a intentarlo.");
-  }
+  const image = await db.mediaAsset.findFirst({ where: { contentId: current.id, mediaType: "image", isFeatured: true, isSensitive: false, isGalleryUpload: false }, select: { id: true } });
+  if (!image) throw new Error(`No se puede publicar este contenido sin imagen principal. Usa set_editorial_content_image para añadirla y vuelve a intentarlo.`);
   const item = await db.content.update({ where: { id: current.id }, data: { status: ContentStatus.PUBLISHED, publishedAt: current.publishedAt ?? new Date(), importLogs: { create: { source: "mcp:publish_editorial_content", payloadType: args.type, payloadSummary: `Publicación confirmada desde ChatGPT: ${current.title}`, state: "VALIDATED" } } } });
   revalidate(args.type, args.slug);
   return { ...result(item, args.type), title: item.title };

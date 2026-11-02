@@ -21,6 +21,7 @@ export default async function InvestigacionPage({
     href: `/investigacion/${item.slug}`,
     title: item.title,
     summary: item.summary,
+    image: item.image,
     kicker: "Investigación",
     type: "research" as const,
     tags: item.tags,
@@ -56,6 +57,7 @@ export default async function InvestigacionPage({
         href: item.href,
         title: item.title,
         summary: item.summary,
+        image: item.image,
         eyebrow: item.source || "Investigación",
         meta: (item.meta ?? []).map((metaItem) =>
           typeof metaItem === "string"
