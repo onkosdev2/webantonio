@@ -17,6 +17,7 @@ export default async function ReflexionesPage() {
         href: `/reflexiones/${item.slug}`,
         title: item.title,
         summary: item.summary,
+        image: item.image,
         eyebrow: item.source || "Reflexión",
         meta: item.tags
       }))}

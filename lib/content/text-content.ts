@@ -74,7 +74,13 @@ async function queryPublishedTextContentItems(type: SupportedTextType) {
       source: true,
       tags: true,
       publishedAt: true,
-      updatedAt: true
+      updatedAt: true,
+      media: {
+        where: { isFeatured: true, mediaType: "image", isSensitive: false },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { storagePath: true, altText: true, title: true, origin: true }
+      }
     },
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }]
   });
@@ -86,6 +92,11 @@ async function queryPublishedTextContentItems(type: SupportedTextType) {
     summary: item.summary,
     source: item.source ?? "manual",
     tags: toArray(item.tags),
+    image: item.media[0] ? {
+      src: item.media[0].storagePath,
+      alt: item.media[0].altText || item.media[0].title || item.title,
+      origin: item.media[0].origin
+    } : null,
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   }));
@@ -120,7 +131,13 @@ async function queryPublishedTextContentBySlug(
       source: true,
       tags: true,
       publishedAt: true,
-      updatedAt: true
+      updatedAt: true,
+      media: {
+        where: { isFeatured: true, mediaType: "image", isSensitive: false },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { storagePath: true, altText: true, title: true, origin: true }
+      }
     }
   });
 
@@ -136,6 +153,11 @@ async function queryPublishedTextContentBySlug(
     body: item.body,
     source: item.source ?? "",
     tags: toArray(item.tags),
+    featuredImage: item.media[0] ? {
+      src: item.media[0].storagePath,
+      alt: item.media[0].altText || item.media[0].title || item.title,
+      origin: item.media[0].origin
+    } : null,
     publishedAt: item.publishedAt,
     updatedAt: item.updatedAt
   };

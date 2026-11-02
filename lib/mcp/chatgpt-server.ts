@@ -41,6 +41,8 @@ import {
   listEditorialContentSchema,
   publishEditorialContent,
   publishEditorialContentSchema,
+  setReflectionImage,
+  setReflectionImageSchema,
   updateEditorialContent,
   updateEditorialContentSchema
 } from "@/lib/mcp/editorial-content";
@@ -141,7 +143,7 @@ export function createChatGptMcpServer(options: { publicationImages?: Publicatio
       "Antes de publicar una noticia, revísala con get_news_item y comprueba que la fuente, el enlace y la imagen principal correspondan al contenido.",
       "Publica una noticia únicamente ante una orden explícita del usuario y enviando confirmation=PUBLICAR a publish_news. Si falta la fuente o la imagen, conserva el borrador y explica qué falta.",
       "Usa publish_news_automated exclusivamente dentro de una automatización recurrente que ya tenga autorización para publicar. Esa herramienta recibe contenido y fuente validados, crea o recupera el borrador por URL, genera y asocia la portada, y publica sin confirmation=PUBLICAR. Nunca la uses como atajo en una conversación interactiva.",
-      "Para Editorial, Investigación y Reflexiones, redacta con el usuario en ChatGPT y usa create_editorial_content para guardar un borrador. Esta herramienta no genera texto. Revisa con get_editorial_content; publicar requiere orden explícita y confirmation=PUBLICAR.",
+      "Para Editorial, Investigación y Reflexiones, redacta con el usuario en ChatGPT y usa create_editorial_content para guardar un borrador. Esta herramienta no genera texto. Toda Reflexión requiere una imagen adjunta, imageTitle e imageAltText al crearla; si falta alguno, pídeselo al usuario. Para añadir o cambiar la imagen de una reflexión existente usa set_reflection_image y adjunta el archivo mediante files; no inventes URLs ni conviertas a Base64. Publicar una reflexión sin imagen principal está bloqueado; publicar requiere orden explícita y confirmation=PUBLICAR. Cambiar la imagen de una reflexión publicada requiere confirmation=ACTUALIZAR_PUBLICADO.",
       "Para la Galería independiente usa create_gallery_image con un adjunto del usuario, título, descripción y confirmación de anonimización obligatorios. Se guarda privada; publica solo ante orden explícita con publish_gallery_image. Puedes vincular opcionalmente un caso clínico ya publicado. La publicación de una foto independiente no publica el caso ni otras imágenes."
     ].join(" ")
   });
@@ -405,10 +407,19 @@ export function createChatGptMcpServer(options: { publicationImages?: Publicatio
 
   server.registerTool("create_editorial_content", {
     title: "Crear borrador editorial, investigación o reflexión",
-    description: "Guarda el texto redactado en ChatGPT como DRAFT o PENDING_REVIEW. No genera texto ni publica.",
+    description: "Guarda el texto redactado en ChatGPT como DRAFT o PENDING_REVIEW. No genera texto ni publica. Reflexión requiere adjuntar una imagen en files y proporcionar imageTitle e imageAltText.",
     inputSchema: createEditorialContentSchema,
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
-  }, (input) => guarded(() => createEditorialContent(input), (value) => `Borrador creado: ${value.slug}.`));
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    _meta: { "openai/fileParams": ["files"] }
+  }, (input) => guarded(() => createEditorialContent(input, options.publicationImages), (value) => `Borrador creado: ${value.slug}.`));
+
+  server.registerTool("set_reflection_image", {
+    title: "Añadir o cambiar imagen de reflexión",
+    description: "Carga una imagen proporcionada por el usuario como imagen principal de una reflexión existente. Adjunta el archivo mediante files e indica imageTitle e imageAltText. Para una reflexión publicada requiere confirmation=ACTUALIZAR_PUBLICADO.",
+    inputSchema: setReflectionImageSchema,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+    _meta: { "openai/fileParams": ["files"] }
+  }, (input) => guarded(() => setReflectionImage(input, options.publicationImages), (value) => `Imagen principal de reflexión actualizada: ${value.slug}.`));
 
   server.registerTool("update_editorial_content", {
     title: "Actualizar contenido editorial",

@@ -1,16 +1,19 @@
 # Capa MCP de ONKOS
 
-El servidor `onkos-content-publisher` v2.3.0 se expone en `/mcp` mediante
+El servidor `onkos-content-publisher` v3.0.0 se expone en `/mcp` mediante
 Streamable HTTP. Su implementación está en `app/mcp/route.ts` y
 `lib/mcp/chatgpt-server.ts`.
 
-## Catálogo oficial: 22 herramientas
+## Catálogo oficial: 35 herramientas
 
 | Entidad | Herramientas |
 | --- | --- |
 | Casos clínicos (10) | `list_recent_clinical_cases`, `search_clinical_cases`, `get_clinical_case`, `create_clinical_case_draft`, `update_clinical_case`, `archive_clinical_case`, `configure_case_images`, `generate_case_image`, `set_case_featured_image`, `publish_clinical_case` |
 | Noticias (11) | `list_recent_news`, `search_news`, `get_news_item`, `create_news_draft`, `update_news_item`, `archive_news_item`, `find_reusable_news_images`, `attach_existing_news_image`, `generate_news_image`, `publish_news`, `publish_news_automated` |
 | Ambas (1) | `manage_publication_images` |
+| Editorial, Investigación y Reflexiones (6) | `list_editorial_content`, `get_editorial_content`, `create_editorial_content`, `update_editorial_content`, `publish_editorial_content`, `archive_editorial_content` |
+| Imágenes de Reflexiones (1) | `set_reflection_image` |
+| Galería independiente (6) | `list_gallery_images`, `get_gallery_image`, `create_gallery_image`, `update_gallery_image`, `publish_gallery_image`, `archive_gallery_image` |
 
 La edición conserva campos omitidos, slug y estado. El archivado es lógico y no
 borra medios. El gestor compartido separa portada y galería; el carrusel aparece
@@ -24,6 +27,7 @@ Confirmaciones: `PUBLICAR` para publicación interactiva, `ARCHIVAR` para retira
 contenido y `ACTUALIZAR_PUBLICADO` en las nuevas herramientas de edición e
 imágenes sobre publicaciones visibles. `expectedUpdatedAt` permite detectar
 versiones obsoletas. Los casos requieren confirmación humana de anonimización.
+Las reflexiones requieren una imagen principal adjunta al crearlas por MCP; `set_reflection_image` agrega o cambia la imagen de una reflexión existente. No se puede publicar una reflexión sin imagen principal.
 
 `publish_news_automated` sigue reservado a automatizaciones recurrentes
 preautorizadas. Los contratos completos están en

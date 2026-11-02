@@ -55,6 +55,7 @@ export default async function ReflexionPublicaPage({
       title={item.title}
       summary={item.summary}
       body={item.body}
+      featuredImage={item.featuredImage}
       backHref="/reflexiones"
       backLabel="Volver a reflexiones"
       editHref={`/panel/reflexiones/${item.slug}`}
