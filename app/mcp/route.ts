@@ -4,6 +4,7 @@ import {
   authorizeMcpBearer,
   protectedResourceMetadataUrl
 } from "@/lib/mcp/oauth";
+import { logRuntimeEvent, startMemoryMonitor, trackRuntimeOperation } from "@/lib/observability/runtime-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,6 +93,8 @@ async function isAuthorized(request: Request, rpcMethod: string | null, toolName
 }
 
 async function handle(request: Request) {
+  startMemoryMonitor();
+  const requestStartedAt = Date.now();
   const rpcRequest = request.method === "POST"
     ? await request.clone().json().catch(() => null) as {
         id?: string | number | null;
@@ -104,6 +107,7 @@ async function handle(request: Request) {
       } | null
     : null;
   const rpcMethod = rpcRequest?.method ?? null;
+  const toolName = typeof rpcRequest?.params?.name === "string" ? rpcRequest.params.name : undefined;
 
   let authorized = false;
   try {
@@ -116,9 +120,19 @@ async function handle(request: Request) {
     });
   }
 
+  logRuntimeEvent({
+    event: "http_request_start",
+    source: "mcp",
+    httpMethod: request.method,
+    rpcMethod,
+    toolName,
+    authorized
+  });
+
   console.info("[mcp] request", {
     httpMethod: request.method,
     rpcMethod,
+    toolName,
     authorized
   });
 
@@ -186,8 +200,22 @@ async function handle(request: Request) {
   });
   try {
     await server.connect(transport);
-    const response = await transport.handleRequest(transportRequest);
+    const operation = rpcMethod === "tools/call" && toolName
+      ? `mcp_tool:${toolName}`
+      : `mcp:${rpcMethod ?? request.method}`;
+    const response = await trackRuntimeOperation(operation, () => transport.handleRequest(transportRequest), {
+      httpMethod: request.method,
+      authorized
+    });
     const compatibleResponse = await modernizeResponse(response, rpcMethod, modern);
+    logRuntimeEvent({
+      event: "http_request_end",
+      source: "mcp",
+      httpMethod: request.method,
+      rpcMethod,
+      status: compatibleResponse.status,
+      durationMs: Date.now() - requestStartedAt
+    });
     console.info("[mcp] response", {
       rpcMethod,
       status: compatibleResponse.status,

@@ -4,6 +4,7 @@ import { galleryUploadWhere, isGalleryUpload } from "@/lib/content/gallery-polic
 import { resolvePublicationImage, storePublicationImage } from "@/lib/storage/publication-images";
 import { publicationAttachmentSchema, type AttachmentDownloader } from "@/lib/storage/publication-attachments";
 import { MAX_PUBLICATION_BATCH_BYTES, PublicationImageError } from "@/lib/storage/publication-image-errors";
+import { startMemoryMonitor, trackRuntimeOperation } from "@/lib/observability/runtime-events";
 import { assertClinicalPrivacy, assertPublicationEditable, lockPublication, publicationEntitySchema, publicationResult, publicationType, revalidatePublication } from "./publication-mutations";
 
 // A gallery accepts files uploaded for that purpose, never IDs or generated assets.
@@ -51,6 +52,7 @@ export const managePublicationImagesSchema = managePublicationImagesInputSchema.
 export type PublicationImagesOptions = { downloadAttachment?: AttachmentDownloader; revalidate?: typeof revalidatePublication };
 
 export async function managePublicationImages(input: unknown, options: PublicationImagesOptions = {}) {
+  startMemoryMonitor();
   const data = managePublicationImagesSchema.parse(input);
   if (data.entity === "clinical_case" && data.images) assertClinicalPrivacy(data.images.map(({ title, altText, caption }) => ({ title, altText, caption })));
   // Check publication authorization before downloading or processing any attachment.
@@ -61,7 +63,12 @@ export async function managePublicationImages(input: unknown, options: Publicati
   const decoded: Awaited<ReturnType<typeof resolvePublicationImage>>[] = [];
   let inputBytes = 0;
   for (const [index, item] of (data.images || []).entries()) {
-    const file = await resolvePublicationImage({ ...item, file: data.files?.[index] ?? item.file }, options.downloadAttachment, MAX_PUBLICATION_BATCH_BYTES - inputBytes);
+    const file = await trackRuntimeOperation("publication_image_download_and_process", () => resolvePublicationImage({ ...item, file: data.files?.[index] ?? item.file }, options.downloadAttachment, MAX_PUBLICATION_BATCH_BYTES - inputBytes), {
+      entity: data.entity,
+      action: data.action,
+      imageIndex: index + 1,
+      imageCount: data.images?.length ?? 0
+    });
     inputBytes += file.inputBytes;
     decoded.push(file);
   }

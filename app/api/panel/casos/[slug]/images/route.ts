@@ -5,10 +5,12 @@ import {
   generateCaseImages,
   type ImageAspectRatio
 } from "@/lib/ai/nvidia-images";
+import { logRuntimeEvent, startMemoryMonitor, trackRuntimeOperation } from "@/lib/observability/runtime-events";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request, context: { params: Promise<{ slug: string }> }) {
+  startMemoryMonitor();
   if (!await getApiUser()) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { slug } = await context.params;
   const body = await request.json().catch(() => ({})) as {
@@ -46,6 +48,9 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
   }
 
   try {
+    const provider = body.provider === "nvidia" || body.provider === "comfyui" ? body.provider : "openai";
+    const operationStartedAt = Date.now();
+    logRuntimeEvent({ event: "operation_start", operation: "generate_case_images_http", provider, aspectRatio });
     await db.caseFigure.update({
       where: { id: figure.id },
       data: {
@@ -53,7 +58,7 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
         ...(body.promptOverride?.trim() ? { optimizedPrompt: prompt } : {})
       }
     });
-    const generated = await generateCaseImages({
+    const generated = await trackRuntimeOperation("generate_case_images", () => generateCaseImages({
       title: item.title,
       summary: item.summary,
       body: item.body,
@@ -68,13 +73,8 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
       tone: body.tone ?? "docente",
       aspectRatio,
       promptOverride: prompt,
-      provider:
-        body.provider === "nvidia"
-          ? "nvidia"
-          : body.provider === "comfyui"
-            ? "comfyui"
-            : "openai"
-    });
+      provider
+    }), { provider, aspectRatio });
     const assets = await db.$transaction(generated.map((image) => db.mediaAsset.create({
       data: {
         contentId: item.id,
@@ -89,8 +89,22 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
       }
     })));
     await db.caseFigure.update({ where: { id: figure.id }, data: { status: "GENERATED" } });
+    logRuntimeEvent({
+      event: "operation_end",
+      operation: "generate_case_images_http",
+      outcome: "ok",
+      provider,
+      aspectRatio,
+      durationMs: Date.now() - operationStartedAt
+    });
     return NextResponse.json({ assets });
   } catch (error) {
+    logRuntimeEvent({
+      event: "operation_end",
+      operation: "generate_case_images_http",
+      outcome: "error",
+      errorName: error instanceof Error ? error.name : "UnknownError"
+    });
     await db.caseFigure.update({ where: { id: figure.id }, data: { status: "FAILED" } }).catch(() => undefined);
     return NextResponse.json({
       error: error instanceof Error ? error.message : "No se pudo generar la imagen."
