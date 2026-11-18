@@ -67,6 +67,7 @@ export default async function CasoClinicoPublicoPage({
       summary={item.summary}
       body={item.body}
       publicationDate={publicationDate}
+      sharePath={`/casos-clinicos/${item.slug}`}
       featuredImage={item.featuredImage}
       gallery={await getPublicationGallery(item.id)}
       backHref="/casos-clinicos"

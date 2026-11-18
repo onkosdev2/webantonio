@@ -15,11 +15,13 @@ import {
   ArrowRight,
   BookOpenText,
   Clock,
+  FacebookLogo,
   Leaf,
   ShieldCheck
 } from "@phosphor-icons/react/dist/ssr";
 import { SiteHeader } from "@/components/layout/site-header";
 import type { PublicPublicationDate } from "@/lib/content/public-dates";
+import { absoluteUrl } from "@/lib/seo";
 import { PublicationDateTime } from "./publication-date-time";
 import styles from "./public-article-page.module.css";
 import { PublicationGallery } from "./publication-gallery";
@@ -34,6 +36,7 @@ type PublicArticlePageProps = {
   summary: string;
   body: string;
   publicationDate?: PublicPublicationDate | null;
+  sharePath: string;
   featuredImage?: { src: string; alt: string; origin?: string } | null;
   backHref: string;
   backLabel: string;
@@ -241,6 +244,7 @@ export function PublicArticlePage({
   summary,
   body,
   publicationDate,
+  sharePath,
   featuredImage,
   backHref,
   backLabel,
@@ -343,9 +347,19 @@ export function PublicArticlePage({
                   <Leaf size={17} aria-hidden="true" />
                   {kicker}
                 </p>
-                {publicationDate ? (
-                  <PublicationDateTime value={publicationDate} variant="article" />
-                ) : null}
+                <div className={styles.articleDateRow}>
+                  {publicationDate ? <PublicationDateTime value={publicationDate} variant="article" /> : null}
+                  <a
+                    className={styles.facebookShare}
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absoluteUrl(sharePath))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Compartir esta publicación en Facebook"
+                  >
+                    <FacebookLogo size={17} weight="fill" aria-hidden="true" />
+                    <span>Compartir</span>
+                  </a>
+                </div>
                 <h1
                   className={isLongTitle ? styles.longTitle : undefined}
                   aria-label={title}

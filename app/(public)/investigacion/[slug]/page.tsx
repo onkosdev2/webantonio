@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
 import { getPublishedResearchBySlug, researchPublicBody, researchPublicSourceLabel } from "@/lib/content/research";
+import { formatPublicPublicationDate } from "@/lib/content/public-dates";
 import { getPublicArchiveItems, getRelatedPublicItems } from "@/lib/content/public";
 import { articleJsonLd, articleMetadata, breadcrumbJsonLd, physicianJsonLd } from "@/lib/seo";
 
@@ -47,6 +48,7 @@ export default async function InvestigacionPublicaPage({
     type: "research",
     tags: item.tags
   });
+  const publicationDate = formatPublicPublicationDate(item.publishedAt, item.updatedAt);
 
   return (
     <PublicArticlePage
@@ -54,6 +56,8 @@ export default async function InvestigacionPublicaPage({
       title={item.title}
       summary={item.summary}
       body={researchPublicBody(item.body, item.source)}
+      publicationDate={publicationDate}
+      sharePath={`/investigacion/${item.slug}`}
       featuredImage={item.featuredImage}
       backHref="/investigacion"
       backLabel="Volver a investigación"

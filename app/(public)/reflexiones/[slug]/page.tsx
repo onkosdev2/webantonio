@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ContentType } from "@prisma/client";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
 import { getPublishedTextContentBySlug } from "@/lib/content/text-content";
+import { formatPublicPublicationDate } from "@/lib/content/public-dates";
 import { getPublicArchiveItems, getRelatedPublicItems } from "@/lib/content/public";
 import { articleJsonLd, articleMetadata, breadcrumbJsonLd, physicianJsonLd } from "@/lib/seo";
 
@@ -48,6 +49,7 @@ export default async function ReflexionPublicaPage({
     type: "reflection",
     tags: item.tags
   });
+  const publicationDate = formatPublicPublicationDate(item.publishedAt, item.updatedAt);
 
   return (
     <PublicArticlePage
@@ -55,6 +57,8 @@ export default async function ReflexionPublicaPage({
       title={item.title}
       summary={item.summary}
       body={item.body}
+      publicationDate={publicationDate}
+      sharePath={`/reflexiones/${item.slug}`}
       featuredImage={item.featuredImage}
       backHref="/reflexiones"
       backLabel="Volver a reflexiones"

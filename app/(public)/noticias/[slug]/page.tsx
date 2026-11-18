@@ -73,6 +73,7 @@ export default async function NoticiaPublicaPage({
       summary={item.summary}
       body={item.body}
       publicationDate={publicationDate}
+      sharePath={`/noticias/${item.slug}`}
       featuredImage={item.featuredImage}
       gallery={await getPublicationGallery(item.id)}
       backHref="/noticias"
