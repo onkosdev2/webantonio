@@ -27,6 +27,7 @@ export async function generateMetadata({
     title: `${item.title} | Caso clínico oncológico`,
     description: item.summary,
     path: `/casos-clinicos/${item.slug}`,
+    image: item.featuredImage?.src,
     keywords: [
       item.tumorType,
       item.stage,
@@ -98,6 +99,7 @@ export default async function CasoClinicoPublicoPage({
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
           articleSection: "Casos clínicos oncológicos",
+          image: item.featuredImage?.src,
           keywords: [item.tumorType, item.stage, ...item.biomarkers, ...item.tags].filter(Boolean)
         }),
         breadcrumbJsonLd([
