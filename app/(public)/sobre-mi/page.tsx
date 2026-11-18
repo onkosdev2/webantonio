@@ -45,7 +45,7 @@ export default function SobreMiPage() {
         highlightB="Atención desde Lima y orientación remota para provincias"
         highlightC="Experiencia en quimioterapia, terapias dirigidas e inmunoterapia"
         visualLabel="Perfil del doctor"
-        visualSrc="/doctor-profile-hero.png"
+        visualSrc="/home-hero-wide.png"
         visualAlt="Dr. Antonio Camargo en su consultorio"
         visualFit="cover"
         depthKicker="Trayectoria"
