@@ -319,7 +319,8 @@
   filter: saturate(0.82) contrast(1.04);
 }
 
-.newsArticle .clinicalHeroVisual img {
+.newsArticle .clinicalHeroVisual img,
+.editorialArticle .clinicalHeroVisual img {
   object-fit: cover;
 }
 

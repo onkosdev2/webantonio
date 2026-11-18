@@ -28,7 +28,7 @@ export const createEditorialContentSchema = z.object({
   source: z.string().trim().max(500).optional(),
   tags: tagsSchema.default([]),
   status: z.enum(["DRAFT", "PENDING_REVIEW"]).default("DRAFT"),
-  files: z.array(publicationAttachmentSchema).length(1).optional().describe("Para una reflexión, adjunta exactamente una imagen mediante files."),
+  files: z.array(publicationAttachmentSchema).length(1).optional().describe("Opcional: adjunta una imagen principal mediante files al crear; también puedes crear primero el borrador y asociar su portada después con manage_publication_images, action=set_featured."),
   imageTitle: z.string().trim().min(3).max(250).optional(),
   imageAltText: z.string().trim().min(10).max(1000).optional(),
   imageCaption: z.string().trim().max(2000).optional()
@@ -114,7 +114,6 @@ export async function getEditorialContent(input: unknown) {
 
 export async function createEditorialContent(input: unknown, options: PublicationImagesOptions = {}) {
   const args = createEditorialContentSchema.parse(input);
-  if (!args.files?.length) throw new Error("Editoriales, investigaciones y reflexiones requieren una imagen. Adjunta el archivo para crear el borrador.");
   if (args.files?.length && (!args.imageTitle || !args.imageAltText)) throw new Error("Al adjuntar una imagen indica imageTitle e imageAltText.");
   const image = args.files?.[0]
     ? await resolvePublicationImage({ file: args.files[0] }, options.downloadAttachment ?? downloadPublicationAttachment)
@@ -214,8 +213,6 @@ export async function publishEditorialContent(input: unknown) {
   if (!current || current.type !== typeMap[args.type]) throw new Error("No se encontró el contenido solicitado.");
   if (current.status === ContentStatus.ARCHIVED) throw new Error("No se puede publicar contenido archivado.");
   if (current.title.trim().length < 5 || current.summary.trim().length < 20 || current.body.trim().length < 50) throw new Error("Completa título, resumen y cuerpo antes de publicar.");
-  const image = await db.mediaAsset.findFirst({ where: { contentId: current.id, mediaType: "image", isFeatured: true, isSensitive: false, isGalleryUpload: false }, select: { id: true } });
-  if (!image) throw new Error(`No se puede publicar este contenido sin imagen principal. Usa set_editorial_content_image para añadirla y vuelve a intentarlo.`);
   const item = await db.content.update({ where: { id: current.id }, data: { status: ContentStatus.PUBLISHED, publishedAt: current.publishedAt ?? new Date(), importLogs: { create: { source: "mcp:publish_editorial_content", payloadType: args.type, payloadSummary: `Publicación confirmada desde ChatGPT: ${current.title}`, state: "VALIDATED" } } } });
   revalidate(args.type, args.slug);
   return { ...result(item, args.type), title: item.title };

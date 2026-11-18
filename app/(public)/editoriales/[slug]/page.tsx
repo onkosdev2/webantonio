@@ -52,6 +52,7 @@ export default async function EditorialPublicaPage({
 
   return (
     <PublicArticlePage
+      variant="editorial"
       kicker="Editorial publicada"
       title={item.title}
       summary={item.summary}

@@ -58,7 +58,7 @@ export async function managePublicationImages(input: unknown, options: Publicati
   // Check publication authorization before downloading or processing any attachment.
   // The locked transaction below checks again to guard concurrent changes.
   const target = await db.content.findUnique({ where: { slug: data.slug }, select: { id: true, type: true, status: true, updatedAt: true } });
-  if (!target || target.type !== publicationType(data.entity)) throw new PublicationImageError("PUBLICATION_NOT_FOUND", data.entity === "clinical_case" ? "Caso clínico no encontrado." : "Noticia no encontrada.");
+  if (!target || target.type !== publicationType(data.entity)) throw new PublicationImageError("PUBLICATION_NOT_FOUND", "No se encontró la publicación para la entidad y slug indicados.");
   assertPublicationEditable(target, data);
   const decoded: Awaited<ReturnType<typeof resolvePublicationImage>>[] = [];
   let inputBytes = 0;

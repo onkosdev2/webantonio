@@ -3077,7 +3077,7 @@ textarea:focus-visible {
   height: 100%;
   min-height: 610px;
   border-radius: 0;
-  object-position: center;
+  object-position: 72% center;
 }
 
 .section-shell-profile .internal-luxury-grid,
@@ -3250,7 +3250,7 @@ textarea:focus-visible {
   }
 
   .section-shell-profile .section-visual-image-cover {
-    object-position: center 24%;
+    object-position: 72% 24%;
   }
 
   .section-shell-profile .profile-section-grid {

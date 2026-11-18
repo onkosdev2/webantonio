@@ -5,9 +5,16 @@ import { db } from "@/lib/db";
 import { findPersonalIdentifierRisks } from "@/lib/ai/privacy";
 import { revalidatePublicContentCache } from "@/lib/content/public-cache";
 
-export const publicationEntitySchema = z.enum(["clinical_case", "news_item"]);
+export const publicationEntitySchema = z.enum(["clinical_case", "news_item", "editorial", "research", "reflection"]);
 export type PublicationEntity = z.infer<typeof publicationEntitySchema>;
-export const publicationType = (entity: PublicationEntity) => entity === "clinical_case" ? ContentType.CLINICAL_CASE : ContentType.NEWS_ITEM;
+const publicationTypeMap: Record<PublicationEntity, ContentType> = {
+  clinical_case: ContentType.CLINICAL_CASE,
+  news_item: ContentType.NEWS_ITEM,
+  editorial: ContentType.EDITORIAL,
+  research: ContentType.RESEARCH,
+  reflection: ContentType.REFLECTION
+};
+export const publicationType = (entity: PublicationEntity) => publicationTypeMap[entity];
 const text = (min: number) => z.string().trim().min(min);
 const strings = z.array(text(1)).max(100);
 const commonPatch = {
@@ -46,8 +53,8 @@ export const archivePublicationSchema = z.object({
 
 export function revalidatePublication(entity: PublicationEntity, slug: string) {
   revalidatePublicContentCache();
-  const section = entity === "clinical_case" ? "casos-clinicos" : "noticias";
-  const panel = entity === "clinical_case" ? "casos" : "noticias";
+  const section = { clinical_case: "casos-clinicos", news_item: "noticias", editorial: "editoriales", research: "investigacion", reflection: "reflexiones" }[entity];
+  const panel = { clinical_case: "casos", news_item: "noticias", editorial: "editoriales", research: "investigacion", reflection: "reflexiones" }[entity];
   for (const path of ["/", "/panel", "/galeria", `/panel/${panel}`, `/panel/${panel}/${slug}`, `/${section}`, `/${section}/${slug}`, "/sitemap.xml", "/news-sitemap.xml"]) revalidatePath(path);
 }
 
@@ -72,9 +79,11 @@ export function assertClinicalPrivacy(value: unknown) {
 
 export function publicationResult(item: { id: string; slug: string; status: ContentStatus; updatedAt: Date }, entity: PublicationEntity) {
   const site = (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const section = { clinical_case: "casos-clinicos", news_item: "noticias", editorial: "editoriales", research: "investigacion", reflection: "reflexiones" }[entity];
+  const panel = { clinical_case: "casos", news_item: "noticias", editorial: "editoriales", research: "investigacion", reflection: "reflexiones" }[entity];
   return { id: item.id, slug: item.slug, status: item.status, updated_at: item.updatedAt.toISOString(),
-    edit_url: `${site}/panel/${entity === "clinical_case" ? "casos" : "noticias"}/${item.slug}`,
-    public_url: item.status === ContentStatus.PUBLISHED ? `${site}/${entity === "clinical_case" ? "casos-clinicos" : "noticias"}/${item.slug}` : null };
+    edit_url: `${site}/panel/${panel}/${item.slug}`,
+    public_url: item.status === ContentStatus.PUBLISHED ? `${site}/${section}/${item.slug}` : null };
 }
 
 export async function updatePublication(entity: PublicationEntity, input: unknown) {

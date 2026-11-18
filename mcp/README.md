@@ -27,7 +27,7 @@ Confirmaciones: `PUBLICAR` para publicación interactiva, `ARCHIVAR` para retira
 contenido y `ACTUALIZAR_PUBLICADO` en las nuevas herramientas de edición e
 imágenes sobre publicaciones visibles. `expectedUpdatedAt` permite detectar
 versiones obsoletas. Los casos requieren confirmación humana de anonimización.
-Editoriales, investigaciones y reflexiones requieren una imagen principal adjunta al crearlas por MCP. `set_editorial_content_image` agrega o cambia la imagen de cualquiera de esas publicaciones; `set_reflection_image` se conserva como alias compatible. No se puede publicar ninguna de las tres sin imagen principal.
+Editoriales, investigaciones y reflexiones pueden crearse y publicarse sin imagen. Si se desea, la portada puede adjuntarse al crear o después con `manage_publication_images` usando `entity: "editorial" | "research" | "reflection"`, el `slug` devuelto y `action: "set_featured"`. `set_editorial_content_image` agrega o cambia la imagen de cualquiera de esas publicaciones; `set_reflection_image` se conserva como alias compatible.
 
 `publish_news_automated` sigue reservado a automatizaciones recurrentes
 preautorizadas. Los contratos completos están en

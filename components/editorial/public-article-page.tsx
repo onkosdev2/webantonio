@@ -30,7 +30,7 @@ import type { PublicationGalleryImage } from "@/lib/content/publication-gallery"
 type PublicChip = string | { label: string; href?: string };
 
 type PublicArticlePageProps = {
-  variant?: "default" | "clinical-case" | "news";
+  variant?: "default" | "clinical-case" | "news" | "editorial";
   kicker: string;
   title: string;
   summary: string;
@@ -256,7 +256,7 @@ export function PublicArticlePage({
   gallery = []
 }: PublicArticlePageProps) {
   const isClinicalCase = variant === "clinical-case";
-  const usesAtlasLayout = variant === "clinical-case" || variant === "news";
+  const usesAtlasLayout = variant !== "default";
   const titleSeparatorIndex = usesAtlasLayout ? title.indexOf(":") : -1;
   const hasTitleDeck = titleSeparatorIndex > 0;
   const titleLead = hasTitleDeck ? title.slice(0, titleSeparatorIndex) : title;
@@ -285,10 +285,15 @@ export function PublicArticlePage({
             src: "/section-clinical-atlas.svg",
             alt: "Composición editorial del archivo de casos clínicos"
           }
-        : {
-            src: "/editorial-ct-scan.png",
-            alt: "Composición editorial de actualidad oncológica"
-          })
+        : variant === "news"
+          ? {
+              src: "/editorial-ct-scan.png",
+              alt: "Composición editorial de actualidad oncológica"
+            }
+          : {
+              src: "/hero-oncology-luxe.svg",
+              alt: "Ilustración editorial sobre oncología"
+            })
     : null;
   const readingGuide = (
     <aside
@@ -340,7 +345,7 @@ export function PublicArticlePage({
             <p>{kicker}</p>
           </nav>
 
-          <article className={`${styles.article}${usesAtlasLayout ? ` ${styles.clinicalArticle}` : ""}${variant === "news" ? ` ${styles.newsArticle}` : ""}`}>
+          <article className={`${styles.article}${usesAtlasLayout ? ` ${styles.clinicalArticle}` : ""}${variant === "news" ? ` ${styles.newsArticle}` : ""}${variant === "editorial" ? ` ${styles.editorialArticle}` : ""}`}>
             <header className={`${styles.articleHeader}${usesAtlasLayout ? ` ${styles.clinicalHeader}` : ""}`}>
               <div className={styles.headerCopy}>
                 <p className={styles.kicker}>
@@ -389,7 +394,9 @@ export function PublicArticlePage({
                     <span>
                       {isClinicalCase
                         ? "Figura educativa del caso"
-                        : "Ilustración editorial de la noticia"}
+                        : variant === "news"
+                          ? "Ilustración editorial de la noticia"
+                          : "Ilustración editorial"}
                     </span>
                     {['openai', 'nvidia'].includes(atlasHeroImage.origin ?? '') ? (
                       <small>Generada con IA · no corresponde a un estudio real</small>

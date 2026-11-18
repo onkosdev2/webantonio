@@ -53,6 +53,7 @@ export default async function ReflexionPublicaPage({
 
   return (
     <PublicArticlePage
+      variant="editorial"
       kicker="Reflexión publicada"
       title={item.title}
       summary={item.summary}

@@ -368,7 +368,7 @@ En las cuatro herramientas puedes enviar `expectedUpdatedAt` con el `updated_at`
 
 ### 3.22 `manage_publication_images`
 
-Gestiona portada y galería para `entity: "clinical_case"` o `"news_item"` y un `slug`.
+Gestiona portada y galería para `entity: "clinical_case"`, `"news_item"`, `"editorial"`, `"research"` o `"reflection"` y un `slug`.
 
 | `action` | Parámetro | Uso |
 | --- | --- | --- |
@@ -417,12 +417,12 @@ Estas herramientas administran Editorial, Investigación y Reflexiones. Cada lla
 
 - `list_editorial_content`: filtra por estado y texto; límite 50.
 - `get_editorial_content`: recupera el cuerpo, resumen, etiquetas, estado, medios y enlaces por `type` + `slug`.
-- `create_editorial_content`: requiere título, resumen, cuerpo y una imagen principal; crea `DRAFT` o `PENDING_REVIEW` y nunca publica. Para cualquiera de los tres `type`, adjunta exactamente un archivo en `files` e indica `imageTitle` e `imageAltText`.
+- `create_editorial_content`: requiere título, resumen y cuerpo; crea `DRAFT` o `PENDING_REVIEW` y nunca publica. La imagen es opcional al crear: puedes asociarla después mediante `manage_publication_images` con `entity` igual a `editorial`, `research` o `reflection`, el `slug` devuelto y `action: "set_featured"`. Para cargarla al crear, adjunta un archivo en `files` e indica `imageTitle` e `imageAltText`.
 - `update_editorial_content`: cambia campos parciales. Para contenido publicado requiere `confirmation: "ACTUALIZAR_PUBLICADO"`.
 - `publish_editorial_content`: requiere orden explícita y `confirmation: "PUBLICAR"`.
 - `archive_editorial_content`: conserva datos y requiere `confirmation: "ARCHIVAR"`.
 
-Editoriales, investigaciones y reflexiones necesitan una imagen principal para publicarse. `publish_editorial_content` rechaza contenido sin ella. `set_editorial_content_image` agrega o cambia la imagen de un contenido existente: recibe `type`, `slug`, un adjunto `files`, `imageTitle` e `imageAltText`; cambiarla en contenido publicado requiere `confirmation: "ACTUALIZAR_PUBLICADO"`. `set_reflection_image` se conserva como alias compatible para reflexiones. El archivo se valida, convierte a WebP y aparece en la tarjeta y página pública de cada sección.
+Editoriales, investigaciones y reflexiones pueden publicarse con o sin imagen principal. `manage_publication_images` puede agregar o cambiar la portada usando `action: "set_featured"`, `entity`, `slug`, un adjunto en `files` y sus metadatos en `images`; cambiarla en contenido publicado requiere `confirmation: "ACTUALIZAR_PUBLICADO"`. `set_editorial_content_image` ofrece la misma función con campos `type`, `imageTitle` e `imageAltText`; `set_reflection_image` se conserva como alias compatible para reflexiones. El archivo se valida, convierte a WebP y aparece en la tarjeta y página pública de cada sección.
 
 ### 3.29–3.30 Herramientas de imagen editorial
 
