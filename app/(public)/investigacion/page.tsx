@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import { getSearchParamValue } from "@/lib/content/public-query";
 import {
@@ -5,6 +7,15 @@ import {
   getArchiveFilterOptions
 } from "@/lib/content/public";
 import { getPublishedResearchItems } from "@/lib/content/research";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Investigación Clínica en Oncología | Dr. Antonio Camargo",
+  description:
+    "Estudios, guías y biomarcadores en oncología leídos desde su utilidad clínica, sus límites y su aplicación en la consulta.",
+  path: "/investigacion",
+  keywords: ["investigación oncológica", "evidencia en cáncer", "guías oncológicas"]
+});
+
 
 type InvestigacionPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

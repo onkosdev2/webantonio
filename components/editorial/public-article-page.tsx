@@ -438,6 +438,11 @@ export function PublicArticlePage({
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
+                    // La página ya tiene su propio H1 (el título); un "# " dentro
+                    // del texto se muestra como subtítulo para no duplicar el H1.
+                    h1: ({ children }) => (
+                      <h2 id={headingId(textFromNode(children), 0)}>{children}</h2>
+                    ),
                     h2: ({ children }) => (
                       <h2 id={headingId(textFromNode(children), 0)}>{children}</h2>
                     ),

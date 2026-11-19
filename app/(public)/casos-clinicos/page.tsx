@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import { ClinicalCasesLiveUpdates } from "@/components/editorial/clinical-cases-live-updates";
 import { getSearchParamValue } from "@/lib/content/public-query";
@@ -7,6 +9,15 @@ import {
   PUBLIC_ARCHIVE_PAGE_SIZE,
   parsePublicArchivePage
 } from "@/lib/content/public-listing";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Casos Clínicos Oncológicos | Dr. Antonio Camargo",
+  description:
+    "Casos clínicos de oncología con diagnóstico, biomarcadores, tratamiento y evolución, comentados por el Dr. Antonio Camargo, oncólogo clínico en Lima.",
+  path: "/casos-clinicos",
+  keywords: ["casos clínicos oncológicos", "casos de cáncer", "oncología clínica"]
+});
+
 
 type CasosClinicosPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

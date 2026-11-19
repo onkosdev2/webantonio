@@ -217,7 +217,6 @@ export async function HomePage() {
                 <div className={styles.reflectionContent}>
                   <div className={styles.reflectionMeta}>
                     <span><Leaf size={16} /> Reflexión editorial</span>
-                    <span className={styles.sampleBadge}>Contenido de muestra</span>
                   </div>
                   <h3>El tiempo de la escucha en oncología</h3>
                   <p>Reflexiones sobre el vínculo clínico, las decisiones compartidas y el cuidado que dignifica.</p>
@@ -296,7 +295,6 @@ export async function HomePage() {
               <div>
                 <div className={styles.infoTitle}>
                   <h2><Compass size={18} /> Orientación a distancia</h2>
-                  <span className={styles.sampleBadge}>Contenido de muestra</span>
                 </div>
                 <p>Acompañamiento profesional para pacientes y familias, donde y cuando lo necesiten.</p>
               </div>

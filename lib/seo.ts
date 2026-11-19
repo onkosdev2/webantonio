@@ -6,7 +6,7 @@ export const siteUrl = new URL(
 
 export const siteName = "Dr. Antonio Camargo";
 export const doctorName = "Dr. Antonio Camargo";
-export const defaultOgImage = "/doctor-profile-hero.png";
+export const defaultOgImage = "/og-default.jpg";
 
 export function absoluteUrl(path = "/") {
   return new URL(path, siteUrl).toString();
@@ -24,6 +24,69 @@ export const baseKeywords = [
   "cáncer en Perú",
   "educación médica oncológica"
 ];
+
+// Límites prácticos de lo que Google muestra en resultados de búsqueda.
+const SEO_TITLE_MAX = 60;
+const SEO_TITLE_HARD_MAX = 90;
+const SEO_DESCRIPTION_MAX = 155;
+const SOCIAL_DESCRIPTION_MAX = 300;
+
+function cutAtWord(text: string, max: number) {
+  if (text.length <= max) return text;
+  const slice = text.slice(0, max - 1);
+  const lastSpace = slice.lastIndexOf(" ");
+  const base = lastSpace > max * 0.6 ? slice.slice(0, lastSpace) : slice;
+  return `${base.replace(/[\s,;:.\-–—|(]+$/, "")}…`;
+}
+
+export function toPlainText(text: string) {
+  return text
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/[#*_`>~]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Título para la etiqueta <title>. Si con el sufijo ("| Noticia oncológica")
+ * supera ~60 caracteres, se quita el sufijo para que Google muestre lo
+ * importante. El título en sí solo se corta si es muy largo (>90), para no
+ * perder palabras clave que sí cuentan para el posicionamiento.
+ */
+export function fitSeoTitle(
+  title: string,
+  max = SEO_TITLE_MAX,
+  hardMax = SEO_TITLE_HARD_MAX
+) {
+  let current = title.replace(/\s+/g, " ").trim();
+  while (current.length > max && current.includes(" | ")) {
+    const shorter = current.slice(0, current.lastIndexOf(" | ")).trim();
+    if (shorter.length < 35) break;
+    current = shorter;
+  }
+  return cutAtWord(current, current.length > max && current.includes(" | ") ? max : hardMax);
+}
+
+/**
+ * Descripción breve: texto plano, terminada en una frase completa cuando es
+ * posible, o cortada en una palabra completa.
+ */
+export function fitSeoDescription(text: string, max = SEO_DESCRIPTION_MAX) {
+  const plain = toPlainText(text);
+  if (plain.length <= max) return plain;
+  const slice = plain.slice(0, max);
+  const sentenceEnd = Math.max(
+    slice.lastIndexOf(". "),
+    slice.lastIndexOf("? "),
+    slice.lastIndexOf("! ")
+  );
+  if (sentenceEnd >= max * 0.55) {
+    return slice.slice(0, sentenceEnd + 1);
+  }
+  return cutAtWord(plain, max);
+}
 
 export function buildPageMetadata({
   title,
@@ -44,9 +107,12 @@ export function buildPageMetadata({
   publishedTime?: string;
   modifiedTime?: string;
 }): Metadata {
+  const metaTitle = fitSeoTitle(title);
+  const metaDescription = fitSeoDescription(description);
+  const socialDescription = fitSeoDescription(description, SOCIAL_DESCRIPTION_MAX);
   const openGraphBase = {
     title,
-    description,
+    description: socialDescription,
     url: path,
     siteName,
     locale: "es_PE",
@@ -62,9 +128,9 @@ export function buildPageMetadata({
 
   return {
     title: {
-      absolute: title
+      absolute: metaTitle
     },
-    description,
+    description: metaDescription,
     keywords: [...baseKeywords, ...keywords],
     alternates: {
       canonical: path
@@ -85,7 +151,7 @@ export function buildPageMetadata({
     twitter: {
       card: "summary_large_image",
       title,
-      description,
+      description: socialDescription,
       images: [image]
     }
   };
@@ -215,8 +281,9 @@ export function articleJsonLd({
       "@id": absoluteUrl(path)
     },
     url: absoluteUrl(path),
-    headline,
-    description,
+    // Google recomienda titulares de hasta 110 caracteres en datos estructurados.
+    headline: cutAtWord(headline.replace(/\s+/g, " ").trim(), 110),
+    description: fitSeoDescription(description, SOCIAL_DESCRIPTION_MAX),
     image: [absoluteUrl(image)],
     thumbnailUrl: absoluteUrl(image),
     inLanguage: "es-PE",

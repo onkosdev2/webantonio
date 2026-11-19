@@ -3,9 +3,9 @@ import { HomePage } from "@/components/home/home-page";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Dr. Antonio Camargo | Oncólogo Clínico en Lima y Consulta Remota",
+  title: "Dr. Antonio Camargo | Oncólogo en Lima y Consulta Remota",
   description:
-    "Oncología clínica en Lima, con orientación médica presencial y remota para pacientes de provincias y del extranjero. Casos clínicos, educación oncológica e investigación médica.",
+    "Oncólogo clínico en Lima con consulta presencial y remota para pacientes de provincias y del extranjero. Casos clínicos, noticias e investigación.",
   path: "/",
   keywords: [
     "oncólogo clínico Lima",
