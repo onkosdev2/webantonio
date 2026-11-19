@@ -1,13 +1,24 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { ContentType } from "@prisma/client";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import { getPublishedTextContentItems } from "@/lib/content/text-content";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Historias de Pacientes con Cáncer | Dr. Antonio Camargo",
+  description:
+    "Historias reales del cuidado oncológico: experiencias de pacientes y familias contadas con respeto y criterio médico.",
+  path: "/historias",
+  keywords: ["historias de pacientes con cáncer", "experiencias oncología"]
+});
+
 
 export default async function HistoriasPage() {
   const items = await getPublishedTextContentItems(ContentType.STORY);
 
   return (
     <PublicCollectionPage
-      kicker="Narrativa Clinica"
+      kicker="Narrativa clínica"
       title="Historias"
       description="Textos con dimension humana y clinica, siempre con prudencia etica, contexto y anonimización."
       signature="Narrativa medica con elegancia, respeto y densidad humana"

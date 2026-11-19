@@ -1,6 +1,16 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getPublicGalleryPage } from "@/lib/content/gallery";
 import { parsePublicArchivePage } from "@/lib/content/public-listing";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Galería Clínica de Oncología | Dr. Antonio Camargo",
+  description:
+    "Imágenes clínicas de oncología compartidas y descritas con fines docentes por el Dr. Antonio Camargo, oncólogo clínico en Lima.",
+  path: "/galeria",
+  keywords: ["galería clínica oncología", "imágenes clínicas cáncer"]
+});
 
 type GaleriaPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -18,8 +28,8 @@ export default async function GaleriaPage({ searchParams }: GaleriaPageProps) {
 
       <main className="page-chrome section-shell">
         <section className="shell gallery-header">
-          <span className="eyebrow">Media Clinica</span>
-          <h1 className="section-title">Galeria Clinica</h1>
+          <span className="eyebrow">Media clínica</span>
+          <h1 className="section-title">Galería clínica</h1>
           <p className="section-copy">
             Imágenes clínicas compartidas y descritas para lectura docente.
           </p>

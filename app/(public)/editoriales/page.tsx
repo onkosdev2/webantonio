@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import { getSearchParamValue } from "@/lib/content/public-query";
 import {
@@ -5,6 +7,15 @@ import {
   getArchiveFilterOptions
 } from "@/lib/content/public";
 import { getPublishedEditorials } from "@/lib/content/editorials";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Editoriales de Oncología | Dr. Antonio Camargo",
+  description:
+    "Análisis y opinión médica sobre la práctica oncológica, la toma de decisiones y el cuidado de las personas con cáncer.",
+  path: "/editoriales",
+  keywords: ["editoriales oncología", "opinión médica cáncer"]
+});
+
 
 type EditorialesPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

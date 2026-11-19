@@ -1,6 +1,17 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { ContentType } from "@prisma/client";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
 import { getPublishedTextContentItems } from "@/lib/content/text-content";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Reflexiones sobre Oncología | Dr. Antonio Camargo",
+  description:
+    "Reflexiones del Dr. Antonio Camargo sobre el vínculo clínico, la esperanza y el acompañamiento a pacientes con cáncer y sus familias.",
+  path: "/reflexiones",
+  keywords: ["reflexiones oncología", "acompañamiento paciente con cáncer"]
+});
+
 
 export default async function ReflexionesPage() {
   const items = await getPublishedTextContentItems(ContentType.REFLECTION);

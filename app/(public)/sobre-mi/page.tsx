@@ -9,7 +9,7 @@ import {
 export const metadata: Metadata = buildPageMetadata({
   title: "Sobre el Dr. Antonio Camargo | Oncólogo Clínico en Lima",
   description:
-    "Conoce la trayectoria, enfoque clínico y labor educativa del Dr. Antonio Camargo, oncólogo clínico en Lima con orientación remota para pacientes de provincias y otros países.",
+    "Trayectoria y enfoque clínico del Dr. Antonio Camargo, oncólogo clínico en Lima con orientación remota para pacientes de provincias y del extranjero.",
   path: "/sobre-mi",
   keywords: [
     "sobre Dr Antonio Camargo",

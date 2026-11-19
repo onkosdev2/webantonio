@@ -29,7 +29,7 @@ const typeOptions = [
   { value: "clinical_case", label: "Caso clinico" },
   { value: "news_item", label: "Noticia oncologica" },
   { value: "editorial", label: "Editorial" },
-  { value: "research", label: "Investigacion" },
+  { value: "research", label: "Investigación" },
   { value: "reflection", label: "Reflexion" },
   { value: "story", label: "Historia" }
 ] as const;
