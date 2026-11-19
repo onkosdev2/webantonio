@@ -28,6 +28,9 @@ export async function generateMetadata({
     title: `${item.title} | Historia clínica narrativa`,
     description: item.summary,
     path: `/historias/${item.slug}`,
+    image: item.featuredImage?.src,
+    datePublished: item.publishedAt,
+    dateModified: item.updatedAt,
     keywords: [publicSourceKeyword(item.source), ...item.tags, "historia clínica narrativa"].filter(Boolean)
   });
 }
@@ -77,6 +80,7 @@ export default async function HistoriaPublicaPage({
           description: item.summary,
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
+          image: item.featuredImage?.src,
           articleSection: "Historias clínicas narrativas",
           keywords: [publicSourceKeyword(item.source), ...item.tags].filter(Boolean)
         }),

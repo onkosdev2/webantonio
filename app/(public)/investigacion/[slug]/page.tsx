@@ -27,6 +27,9 @@ export async function generateMetadata({
     title: `${item.title} | Investigación oncológica`,
     description: item.summary,
     path: `/investigacion/${item.slug}`,
+    image: item.featuredImage?.src,
+    datePublished: item.publishedAt,
+    dateModified: item.updatedAt,
     keywords: [...item.tags, "investigación oncológica"]
   });
 }
@@ -78,6 +81,7 @@ export default async function InvestigacionPublicaPage({
           description: item.summary,
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
+          image: item.featuredImage?.src,
           articleSection: "Investigación oncológica",
           keywords: item.tags
         }),
