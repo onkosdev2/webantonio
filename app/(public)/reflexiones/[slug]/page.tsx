@@ -28,6 +28,9 @@ export async function generateMetadata({
     title: `${item.title} | Reflexión médica oncológica`,
     description: item.summary,
     path: `/reflexiones/${item.slug}`,
+    image: item.featuredImage?.src,
+    datePublished: item.publishedAt,
+    dateModified: item.updatedAt,
     keywords: [publicSourceKeyword(item.source), ...item.tags, "reflexión médica oncológica"].filter(Boolean)
   });
 }
@@ -79,6 +82,7 @@ export default async function ReflexionPublicaPage({
           description: item.summary,
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
+          image: item.featuredImage?.src,
           articleSection: "Reflexiones médicas",
           keywords: [publicSourceKeyword(item.source), ...item.tags].filter(Boolean)
         }),

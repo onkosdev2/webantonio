@@ -27,6 +27,9 @@ export async function generateMetadata({
     title: `${item.title} | Editorial oncológica`,
     description: item.summary,
     path: `/editoriales/${item.slug}`,
+    image: item.featuredImage?.src,
+    datePublished: item.publishedAt,
+    dateModified: item.updatedAt,
     keywords: [publicSourceKeyword(item.source), ...item.tags, "editorial oncológica"].filter(Boolean)
   });
 }
@@ -78,6 +81,7 @@ export default async function EditorialPublicaPage({
           description: item.summary,
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
+          image: item.featuredImage?.src,
           articleSection: "Editoriales oncológicas",
           keywords: [publicSourceKeyword(item.source), ...item.tags].filter(Boolean)
         }),
