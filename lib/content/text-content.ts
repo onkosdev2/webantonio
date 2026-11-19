@@ -1,3 +1,4 @@
+import { toPublicTags } from "@/lib/content/public-tags";
 import { ContentStatus, ContentType } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
@@ -93,7 +94,7 @@ async function queryPublishedTextContentItems(type: SupportedTextType) {
     slug: item.slug,
     summary: item.summary,
     source: item.source ?? "manual",
-    tags: toArray(item.tags),
+    tags: toPublicTags(item.tags),
     image: item.media[0] ? {
       src: item.media[0].storagePath,
       alt: item.media[0].altText || item.media[0].title || item.title,
@@ -154,7 +155,7 @@ async function queryPublishedTextContentBySlug(
     summary: item.summary,
     body: item.body,
     source: item.source ?? "",
-    tags: toArray(item.tags),
+    tags: toPublicTags(item.tags),
     featuredImage: item.media[0] ? {
       src: item.media[0].storagePath,
       alt: item.media[0].altText || item.media[0].title || item.title,
