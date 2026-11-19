@@ -1,3 +1,4 @@
+import { publicSourceLabel } from "@/lib/content/public-tags";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
@@ -63,7 +64,7 @@ export default async function InvestigacionPublicaPage({
       backHref="/investigacion"
       backLabel="Volver a investigación"
       editHref={`/panel/investigacion/${item.slug}`}
-      meta={[researchPublicSourceLabel(item.source) ? `Fuente: ${researchPublicSourceLabel(item.source)}` : ""].filter(Boolean)}
+      meta={[publicSourceLabel(researchPublicSourceLabel(item.source)) ?? ""].filter(Boolean)}
       tags={item.tags.map((tag) => ({
         label: tag,
         href: `/investigacion?tag=${encodeURIComponent(tag)}`

@@ -1,3 +1,4 @@
+import { publicSourceLabel, publicSourceKeyword } from "@/lib/content/public-tags";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
@@ -31,7 +32,7 @@ export async function generateMetadata({
     datePublished: item.publishedAt,
     dateModified: item.updatedAt,
     keywords: [
-      item.source,
+      publicSourceKeyword(item.source),
       item.tumorType,
       ...item.biomarkers,
       ...item.tags,
@@ -80,10 +81,10 @@ export default async function NoticiaPublicaPage({
       backLabel="Volver a noticias"
       editHref={`/panel/noticias/${item.slug}`}
       meta={[
-        item.source
+        publicSourceLabel(item.source)
           ? {
-              label: `Fuente: ${item.source}`,
-              href: item.sourceUrl || undefined
+              label: publicSourceLabel(item.source) as string,
+              href: publicSourceKeyword(item.source) ? item.sourceUrl || undefined : undefined
             }
           : "",
         item.tumorType
@@ -115,7 +116,7 @@ export default async function NoticiaPublicaPage({
           articleSection: "Noticias oncológicas",
           image: item.featuredImage?.src,
           type: "NewsArticle",
-          keywords: [item.source, item.tumorType, ...item.biomarkers, ...item.tags].filter(Boolean)
+          keywords: [publicSourceKeyword(item.source), item.tumorType, ...item.biomarkers, ...item.tags].filter(Boolean)
         }),
         breadcrumbJsonLd([
           { name: "Inicio", path: "/" },

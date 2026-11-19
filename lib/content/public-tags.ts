@@ -42,3 +42,40 @@ export function toPublicTags(value: unknown): string[] {
     (tag): tag is string => typeof tag === "string" && !isInternalTag(tag)
   );
 }
+
+export const REVIEWED_BY_LABEL = "Revisado por el Dr. Antonio Camargo";
+
+/**
+ * Fuentes técnicas guardadas por el panel, la IA o la integración MCP
+ * ("ChatGPT", "chatgpt_mcp", "mcp:...", "system:...", "manual").
+ */
+export function isInternalSource(source: string | null | undefined) {
+  const normalized = (source ?? "").trim().toLowerCase();
+  if (!normalized) return false;
+  return (
+    (!/\s/.test(normalized) && normalized.includes("_")) ||
+    /^(mcp|system|import|panel)[:\s-]/.test(normalized) ||
+    /\b(chatgpt|openai|gpt|glm|ia|ai)\b/.test(normalized) ||
+    normalized === "manual"
+  );
+}
+
+/** Texto de la fuente para la web pública (o null si no hay fuente). */
+export function publicSourceText(source: string | null | undefined) {
+  const value = (source ?? "").trim();
+  if (!value) return null;
+  return isInternalSource(value) ? REVIEWED_BY_LABEL : value;
+}
+
+/** Etiqueta completa: "Fuente: X" o "Revisado por el Dr. Antonio Camargo". */
+export function publicSourceLabel(source: string | null | undefined) {
+  const text = publicSourceText(source);
+  if (!text) return null;
+  return text === REVIEWED_BY_LABEL ? text : `Fuente: ${text}`;
+}
+
+/** Fuente apta para palabras clave (las técnicas se descartan). */
+export function publicSourceKeyword(source: string | null | undefined) {
+  const value = (source ?? "").trim();
+  return value && !isInternalSource(value) ? value : "";
+}

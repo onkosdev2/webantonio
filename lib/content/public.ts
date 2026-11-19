@@ -1,4 +1,4 @@
-import { toPublicTags } from "@/lib/content/public-tags";
+import { publicSourceText, toPublicTags } from "@/lib/content/public-tags";
 import { ContentStatus, ContentType } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
@@ -276,7 +276,7 @@ async function queryPublicArchiveItems(): Promise<PublicArchiveItem[]> {
               }
             : null,
           meta: [
-            item.source ?? "manual",
+            publicSourceText(item.source) ?? "",
             tumorType,
             biomarkers.length > 0 ? `Biomarcadores: ${biomarkers.join(", ")}` : ""
           ].filter(Boolean)
@@ -288,7 +288,7 @@ async function queryPublicArchiveItems(): Promise<PublicArchiveItem[]> {
           kicker: "Editorial",
           type: "editorial",
           source: item.source ?? "manual",
-          meta: [item.source ?? "manual", ...tags.slice(0, 3)].filter(Boolean)
+          meta: [publicSourceText(item.source) ?? "", ...tags.slice(0, 3)].filter(Boolean)
         };
       case ContentType.RESEARCH:
         return {
@@ -297,7 +297,7 @@ async function queryPublicArchiveItems(): Promise<PublicArchiveItem[]> {
           kicker: "Investigación",
           type: "research",
           source: item.source ?? "manual",
-          meta: [item.source ?? "manual", ...tags.slice(0, 3)].filter(Boolean)
+          meta: [publicSourceText(item.source) ?? "", ...tags.slice(0, 3)].filter(Boolean)
         };
       case ContentType.REFLECTION:
         return {

@@ -1,3 +1,4 @@
+import { publicSourceLabel, publicSourceKeyword } from "@/lib/content/public-tags";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ContentType } from "@prisma/client";
@@ -27,7 +28,7 @@ export async function generateMetadata({
     title: `${item.title} | Reflexión médica oncológica`,
     description: item.summary,
     path: `/reflexiones/${item.slug}`,
-    keywords: [item.source, ...item.tags, "reflexión médica oncológica"].filter(Boolean)
+    keywords: [publicSourceKeyword(item.source), ...item.tags, "reflexión médica oncológica"].filter(Boolean)
   });
 }
 
@@ -64,7 +65,7 @@ export default async function ReflexionPublicaPage({
       backHref="/reflexiones"
       backLabel="Volver a reflexiones"
       editHref={`/panel/reflexiones/${item.slug}`}
-      meta={[item.source ? `Fuente: ${item.source}` : ""].filter(Boolean)}
+      meta={[publicSourceLabel(item.source) ?? ""].filter(Boolean)}
       tags={item.tags.map((tag) => ({
         label: tag,
         href: `/buscar?tag=${encodeURIComponent(tag)}`
@@ -79,7 +80,7 @@ export default async function ReflexionPublicaPage({
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
           articleSection: "Reflexiones médicas",
-          keywords: [item.source, ...item.tags].filter(Boolean)
+          keywords: [publicSourceKeyword(item.source), ...item.tags].filter(Boolean)
         }),
         breadcrumbJsonLd([
           { name: "Inicio", path: "/" },

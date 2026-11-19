@@ -1,3 +1,4 @@
+import { publicSourceText } from "@/lib/content/public-tags";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { ContentType } from "@prisma/client";
@@ -28,7 +29,7 @@ export default async function HistoriasPage() {
         href: `/historias/${item.slug}`,
         title: item.title,
         summary: item.summary,
-        eyebrow: item.source || "Historia",
+        eyebrow: publicSourceText(item.source) || "Historia",
         meta: item.tags
       }))}
       emptyTitle="Todavía no hay historias publicadas."
