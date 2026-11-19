@@ -12,6 +12,15 @@ export function absoluteUrl(path = "/") {
   return new URL(path, siteUrl).toString();
 }
 
+/**
+ * URL de la imagen para compartir en redes. La imagen general ya es liviana;
+ * cualquier otra se sirve recortada a 1200x630 y comprimida por /og-image.
+ */
+export function shareImageUrl(image: string = defaultOgImage) {
+  if (!image || image === defaultOgImage) return defaultOgImage;
+  return `/og-image?src=${encodeURIComponent(image)}`;
+}
+
 export const baseKeywords = [
   "Dr. Antonio Camargo",
   "oncólogo clínico en Lima",
@@ -107,6 +116,7 @@ export function buildPageMetadata({
   publishedTime?: string;
   modifiedTime?: string;
 }): Metadata {
+  const shareImage = shareImageUrl(image);
   const metaTitle = fitSeoTitle(title);
   const metaDescription = fitSeoDescription(description);
   const socialDescription = fitSeoDescription(description, SOCIAL_DESCRIPTION_MAX);
@@ -118,9 +128,10 @@ export function buildPageMetadata({
     locale: "es_PE",
     images: [
       {
-        url: image,
+        url: shareImage,
         width: 1200,
         height: 630,
+        type: "image/jpeg",
         alt: title
       }
     ]
@@ -152,7 +163,7 @@ export function buildPageMetadata({
       card: "summary_large_image",
       title,
       description: socialDescription,
-      images: [image]
+      images: [shareImage]
     }
   };
 }
