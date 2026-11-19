@@ -1,3 +1,4 @@
+import { publicSourceLabel, publicSourceKeyword } from "@/lib/content/public-tags";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicArticlePage } from "@/components/editorial/public-article-page";
@@ -26,7 +27,7 @@ export async function generateMetadata({
     title: `${item.title} | Editorial oncológica`,
     description: item.summary,
     path: `/editoriales/${item.slug}`,
-    keywords: [item.source, ...item.tags, "editorial oncológica"].filter(Boolean)
+    keywords: [publicSourceKeyword(item.source), ...item.tags, "editorial oncológica"].filter(Boolean)
   });
 }
 
@@ -63,7 +64,7 @@ export default async function EditorialPublicaPage({
       backHref="/editoriales"
       backLabel="Volver a editoriales"
       editHref={`/panel/editoriales/${item.slug}`}
-      meta={[item.source ? `Fuente: ${item.source}` : ""].filter(Boolean)}
+      meta={[publicSourceLabel(item.source) ?? ""].filter(Boolean)}
       tags={item.tags.map((tag) => ({
         label: tag,
         href: `/editoriales?tag=${encodeURIComponent(tag)}`
@@ -78,7 +79,7 @@ export default async function EditorialPublicaPage({
           datePublished: item.publishedAt,
           dateModified: item.updatedAt,
           articleSection: "Editoriales oncológicas",
-          keywords: [item.source, ...item.tags].filter(Boolean)
+          keywords: [publicSourceKeyword(item.source), ...item.tags].filter(Boolean)
         }),
         breadcrumbJsonLd([
           { name: "Inicio", path: "/" },

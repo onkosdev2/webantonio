@@ -1,3 +1,4 @@
+import { publicSourceText } from "@/lib/content/public-tags";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { PublicCollectionPage } from "@/components/editorial/public-collection-page";
@@ -69,7 +70,7 @@ export default async function EditorialesPage({
         title: item.title,
         summary: item.summary,
         image: item.image,
-        eyebrow: item.source || "Editorial",
+        eyebrow: publicSourceText(item.source) || "Editorial",
         meta: (item.meta ?? []).map((metaItem) =>
           typeof metaItem === "string"
             ? {

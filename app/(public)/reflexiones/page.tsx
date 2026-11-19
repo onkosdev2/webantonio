@@ -1,3 +1,4 @@
+import { publicSourceText } from "@/lib/content/public-tags";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { ContentType } from "@prisma/client";
@@ -29,7 +30,7 @@ export default async function ReflexionesPage() {
         title: item.title,
         summary: item.summary,
         image: item.image,
-        eyebrow: item.source || "Reflexión",
+        eyebrow: publicSourceText(item.source) || "Reflexión",
         meta: item.tags
       }))}
       emptyTitle="Todavía no hay reflexiones publicadas."
