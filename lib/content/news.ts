@@ -1,3 +1,4 @@
+import { toPublicTags } from "@/lib/content/public-tags";
 import { ContentStatus, ContentType } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
@@ -111,7 +112,7 @@ async function queryPublishedNewsItems(limit?: number, offset = 0, filters: Publ
           origin: item.media[0].origin
         }
       : null,
-    tags: toArray(item.tags),
+    tags: toPublicTags(item.tags),
     tumorType: item.oncologyData?.tumorType ?? "",
     biomarkers: toArray(item.oncologyData?.biomarkers),
     publishedAt: item.publishedAt,
@@ -333,7 +334,7 @@ async function queryPublishedNewsItemBySlug(slug: string) {
           origin: item.media[0].origin
         }
       : null,
-    tags: toArray(item.tags),
+    tags: toPublicTags(item.tags),
     tumorType: item.oncologyData?.tumorType ?? "",
     biomarkers: toArray(item.oncologyData?.biomarkers),
     publishedAt: item.publishedAt,

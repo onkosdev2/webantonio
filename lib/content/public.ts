@@ -1,3 +1,4 @@
+import { toPublicTags } from "@/lib/content/public-tags";
 import { ContentStatus, ContentType } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
@@ -229,9 +230,7 @@ async function queryPublicArchiveItems(): Promise<PublicArchiveItem[]> {
   });
 
   return items.map((item): PublicArchiveItem => {
-    const tags = Array.isArray(item.tags)
-      ? item.tags.filter((tag): tag is string => typeof tag === "string")
-      : [];
+    const tags = toPublicTags(item.tags);
     const biomarkers = Array.isArray(item.oncologyData?.biomarkers)
       ? item.oncologyData.biomarkers.filter(
           (biomarker): biomarker is string => typeof biomarker === "string"
